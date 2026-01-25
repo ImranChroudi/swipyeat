@@ -30,6 +30,7 @@ export default function MenuItemModal({
   const [selectedModifiers, setSelectedModifiers] = useState<
     Map<string, { modifier: Modifier; selected: boolean }>
   >(new Map())
+  const [showSelectedExtras, setShowSelectedExtras] = useState(true)
   const [specialInstructions, setSpecialInstructions] = useState('')
   const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null)
 
@@ -60,10 +61,12 @@ export default function MenuItemModal({
       const newMap = new Map(selectedModifiers)
       newMap.set(key, { ...current, selected: !current.selected })
       setSelectedModifiers(newMap)
+      if (!current.selected) setShowSelectedExtras(true)
     } else {
       const newMap = new Map(selectedModifiers)
       newMap.set(key, { modifier, selected: true })
       setSelectedModifiers(newMap)
+      setShowSelectedExtras(true)
     }
   }
 
@@ -271,15 +274,40 @@ export default function MenuItemModal({
             {!loading && modifiers.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-lg font-bold mb-4">Add Extras</h3>
-                {Array.from(selectedModifiers.values()).some((m) => m.selected) && (
-                  <div className="mb-3">
-                    <div className="text-sm font-semibold text-text-primary mb-2">
-                      Selected extras (tap ✕ to remove)
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {Array.from(selectedModifiers.values())
-                        .filter((m) => m.selected)
-                        .map(({ modifier }) => (
+                {(() => {
+                  const selected = Array.from(selectedModifiers.values()).filter((m) => m.selected)
+                  if (!selected.length) return null
+
+                  if (!showSelectedExtras) {
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => setShowSelectedExtras(true)}
+                        className="mb-3 inline-flex items-center gap-2 rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-800"
+                      >
+                        Show selected extras ({selected.length})
+                      </button>
+                    )
+                  }
+
+                  return (
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-semibold text-text-primary">
+                          Selected extras (tap ✕ to remove)
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowSelectedExtras(false)}
+                          className="text-gray-500 hover:text-gray-800 font-semibold"
+                          aria-label="Hide selected extras"
+                          title="Hide"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {selected.map(({ modifier }) => (
                           <span
                             key={modifier.id}
                             className="inline-flex items-center gap-2 rounded-full bg-gray-100 text-gray-800 px-3 py-1 text-xs font-semibold border border-gray-200"
@@ -296,9 +324,10 @@ export default function MenuItemModal({
                             </button>
                           </span>
                         ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )
+                })()}
                 <div className="space-y-3">
                   {modifiers.map((modifier) => {
                     const isSelected =

@@ -30,6 +30,7 @@ export default function EditCartItemModal({
   const [selectedModifierIds, setSelectedModifierIds] = useState<Set<string>>(
     () => new Set((cartItem.selectedModifiers || []).map((m) => m.modifierId))
   )
+  const [showSelectedExtras, setShowSelectedExtras] = useState(true)
   const [specialInstructions, setSpecialInstructions] = useState(
     cartItem.specialInstructions || ''
   )
@@ -58,6 +59,7 @@ export default function EditCartItemModal({
       else next.add(modifier.id)
       return next
     })
+    setShowSelectedExtras(true)
   }
 
   const handleSaveChanges = () => {
@@ -194,15 +196,40 @@ export default function EditCartItemModal({
             {!loading && modifiers.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-lg font-bold mb-4">Add Extras</h3>
-                {selectedModifierIds.size > 0 && (
-                  <div className="mb-3">
-                    <div className="text-sm font-semibold text-text-primary mb-2">
-                      Selected extras (tap ✕ to remove)
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {modifiers
-                        .filter((m) => selectedModifierIds.has(m.id))
-                        .map((modifier) => (
+                {(() => {
+                  const selected = modifiers.filter((m) => selectedModifierIds.has(m.id))
+                  if (!selected.length) return null
+
+                  if (!showSelectedExtras) {
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => setShowSelectedExtras(true)}
+                        className="mb-3 inline-flex items-center gap-2 rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-800"
+                      >
+                        Show selected extras ({selected.length})
+                      </button>
+                    )
+                  }
+
+                  return (
+                    <div className="mb-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-semibold text-text-primary">
+                          Selected extras (tap ✕ to remove)
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowSelectedExtras(false)}
+                          className="text-gray-500 hover:text-gray-800 font-semibold"
+                          aria-label="Hide selected extras"
+                          title="Hide"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {selected.map((modifier) => (
                           <span
                             key={modifier.id}
                             className="inline-flex items-center gap-2 rounded-full bg-gray-100 text-gray-800 px-3 py-1 text-xs font-semibold border border-gray-200"
@@ -219,9 +246,10 @@ export default function EditCartItemModal({
                             </button>
                           </span>
                         ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )
+                })()}
                 <div className="space-y-3">
                   {modifiers.map((modifier) => {
                     const isSelected = selectedModifierIds.has(modifier.id)
