@@ -5,10 +5,10 @@ export type RestaurantData = {
     id: string
     name: string
     slug: string
-    description: string | null
-    image_url: string | null
-    phone: string | null
-    address: string | null
+    description?: string | null
+    image_url?: string | null
+    phone?: string | null
+    address?: string | null
   }
   categories: Array<{
     id: string
