@@ -18,7 +18,9 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
-type AddToCartDraft = Partial<Pick<CartItem, 'selectedVariant' | 'selectedModifiers' | 'specialInstructions'>> & {
+type AddToCartDraft = Partial<
+  Pick<CartItem, 'selectedVariant' | 'selectedModifiers' | 'removedModifiers' | 'specialInstructions'>
+> & {
   menuItemId: string
   menuItemName: string
   imageUrl?: string | null
@@ -60,6 +62,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         base_price,
         selectedVariant: undefined,
         selectedModifiers,
+        removedModifiers: [],
         specialInstructions: undefined,
         totalPrice: calculateLineTotal({
           base_price,
@@ -74,6 +77,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const base_price = (input.base_price ?? input.basePrice ?? 0) as number
     const quantity = Math.max(1, input.quantity ?? 1)
     const selectedModifiers = (input.selectedModifiers ?? []) as CartItem['selectedModifiers']
+    const removedModifiers = (input.removedModifiers ?? []) as NonNullable<CartItem['removedModifiers']>
     const selectedVariant = input.selectedVariant
     const specialInstructions = input.specialInstructions || undefined
 
@@ -85,6 +89,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       base_price,
       selectedVariant,
       selectedModifiers,
+      removedModifiers,
       specialInstructions,
       totalPrice: calculateLineTotal({
         base_price,
@@ -104,6 +109,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         existing.menuItemId === item.menuItemId &&
         JSON.stringify(existing.selectedVariant) === JSON.stringify(item.selectedVariant) &&
         JSON.stringify(existing.selectedModifiers) === JSON.stringify(item.selectedModifiers) &&
+        JSON.stringify(existing.removedModifiers || []) === JSON.stringify(item.removedModifiers || []) &&
         (existing.specialInstructions || '') === (item.specialInstructions || '')
     )
 

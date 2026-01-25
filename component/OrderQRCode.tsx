@@ -108,10 +108,14 @@ export default function OrderQRCode({ tableNumber, onClose }: OrderQRCodeProps) 
                 price : modifier.price
               })
           ) ,
+          remove: (item.removedModifiers || []).map((modifier) => ({
+            key: modifier.modifierName,
+          })),
           
       },
       selectedVariant: item.selectedVariant,
       selectedModifiers: item.selectedModifiers,
+      removedModifiers: item.removedModifiers,
       specialInstructions: item.specialInstructions,
       totalPrice: item.totalPrice,
     })),

@@ -93,6 +93,11 @@ export type CartItem = {
     modifierName: string
     price: number
   }>
+  // Modifiers/ingredients the client wants REMOVED (kitchen should not add them)
+  removedModifiers?: Array<{
+    modifierId: string
+    modifierName: string
+  }>
   specialInstructions?: string
   totalPrice: number
 }

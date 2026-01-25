@@ -30,6 +30,9 @@ export default function MenuItemModal({
   const [selectedModifiers, setSelectedModifiers] = useState<
     Map<string, { modifier: Modifier; selected: boolean }>
   >(new Map())
+  const [removedModifierIds, setRemovedModifierIds] = useState<Set<string>>(
+    () => new Set()
+  )
   const [showSelectedExtras, setShowSelectedExtras] = useState(true)
   const [specialInstructions, setSpecialInstructions] = useState('')
   const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null)
@@ -68,6 +71,33 @@ export default function MenuItemModal({
       setSelectedModifiers(newMap)
       setShowSelectedExtras(true)
     }
+
+    // If it was marked as "remove", clear that (can't be both add + remove).
+    setRemovedModifierIds((prev) => {
+      if (!prev.has(key)) return prev
+      const next = new Set(prev)
+      next.delete(key)
+      return next
+    })
+  }
+
+  const handleModifierRemoveToggle = (modifier: Modifier) => {
+    const key = modifier.id
+    // If we mark as "remove", ensure it's not in "add"
+    const current = selectedModifiers.get(key)
+    if (current?.selected) {
+      const newMap = new Map(selectedModifiers)
+      newMap.set(key, { ...current, selected: false })
+      setSelectedModifiers(newMap)
+    }
+
+    setRemovedModifierIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+    setShowSelectedExtras(true)
   }
 
   const handleAddToCart = () => {
@@ -91,6 +121,12 @@ export default function MenuItemModal({
           modifierName: m.modifier.name,
           price: m.modifier.price,
         })),
+      removedModifiers: modifiers
+        .filter((m) => removedModifierIds.has(m.id))
+        .map((m) => ({
+          modifierId: m.id,
+          modifierName: m.name,
+        })),
       specialInstructions: specialInstructions || undefined,
     })
     onClose()
@@ -104,7 +140,7 @@ export default function MenuItemModal({
   
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 z-50 min-h-screen pb-[85px] overflow-y-auto"
+      className="fixed inset-0 bg-black bg-opacity-50 z-50 min-h-screen pb-[100px] overflow-y-auto"
       onClick={onClose}
     >
       {editingCartItem && (
@@ -332,14 +368,17 @@ export default function MenuItemModal({
                   {modifiers.map((modifier) => {
                     const isSelected =
                       selectedModifiers.get(modifier.id)?.selected || false
+                    const isRemoved = removedModifierIds.has(modifier.id)
 
                     return (
                       <label
                         key={modifier.id}
                         className={`group flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all ${
-                          isSelected
-                            ? 'border-primary bg-primary/5 shadow-sm'
-                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                          isRemoved
+                            ? 'border-red-300 bg-red-50/60 shadow-sm'
+                            : isSelected
+                              ? 'border-primary bg-primary/5 shadow-sm'
+                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                         }`}
                       >
                         <input
@@ -375,6 +414,29 @@ export default function MenuItemModal({
                             </div>
                           )}
                         </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            handleModifierRemoveToggle(modifier)
+                          }}
+                          className={`shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-lg border transition-colors ${
+                            isRemoved
+                              ? 'border-red-400 bg-red-600 text-white'
+                              : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                          }`}
+                          aria-label={
+                            isRemoved
+                              ? `Undo remove ${modifier.name}`
+                              : `Remove ${modifier.name} from plate`
+                          }
+                          title={
+                            isRemoved ? 'Undo remove' : "Don't put this on the plate"
+                          }
+                        >
+                          ✕
+                        </button>
                       </label>
                     )
                   })}

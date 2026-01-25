@@ -58,6 +58,10 @@ export default function Cart({ onClose, tableNumber, restaurantId }: CartProps) 
     if (item.selectedVariant) {
       parts.push(item.selectedVariant.name)
     }
+    if (item.removedModifiers?.length) {
+      const names = item.removedModifiers.map((m) => m.modifierName).filter(Boolean)
+      if (names.length) parts.push(`No: ${names.slice(0, 2).join(', ')}${names.length > 2 ? '…' : ''}`)
+    }
     if (item.specialInstructions) {
       parts.push(item.specialInstructions)
     }
@@ -266,6 +270,34 @@ export default function Cart({ onClose, tableNumber, restaurantId }: CartProps) 
                               className="shrink-0 text-gray-500 hover:text-gray-800"
                               aria-label={`Remove ${mod.modifierName}`}
                               title="Remove"
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {/* Removed modifiers (kitchen: don't put) */}
+                    {item.removedModifiers?.length ? (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {item.removedModifiers.map((mod) => (
+                          <span
+                            key={mod.modifierId}
+                            className="inline-flex items-center gap-2 rounded-full bg-red-50 text-red-800 px-3 py-1 text-xs font-semibold border border-red-200"
+                          >
+                            <span className="max-w-[220px] truncate">No {mod.modifierName}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const next = (item.removedModifiers || []).filter(
+                                  (m) => m.modifierId !== mod.modifierId
+                                )
+                                updateItem(item.id, { removedModifiers: next })
+                              }}
+                              className="shrink-0 text-red-600 hover:text-red-800"
+                              aria-label={`Undo remove ${mod.modifierName}`}
+                              title="Undo"
                             >
                               ✕
                             </button>

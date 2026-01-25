@@ -23,9 +23,8 @@ export default function MenuPageClient({
 }: Props) {
   const { restaurant, categories } = initialData
   const { getItemCount, getTotal } = useCart()
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(
-    categories[0]?.id || null
-  )
+  // Default to "Tout" (all categories) on first load
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isCartOpen, setIsCartOpen] = useState(false)
@@ -37,14 +36,12 @@ export default function MenuPageClient({
     (cat) => cat.id === selectedCategoryId 
   )  
 
-  console.log(categories)
-
   const categoryItems = selectedCategoryId !== null 
     ? (selectedCategory?.menu_items || [])
     : categories.flatMap((cat) => cat.menu_items)
   
 
-    const currentItems = categoryItems.filter((item) => {
+  const matchesSearch = (item: RestaurantData['categories'][0]['menu_items'][0]) => {
     if (!searchQuery.trim()) return true
     const query = searchQuery.toLowerCase()
     return (
@@ -52,7 +49,19 @@ export default function MenuPageClient({
       (item.name_ar && item.name_ar.toLowerCase().includes(query)) ||
       item.description.toLowerCase().includes(query)
     )
-  })
+  }
+
+  const currentItems = categoryItems.filter(matchesSearch)
+
+  const groupedCategories =
+    selectedCategoryId === null
+      ? categories
+          .map((cat) => ({
+            category: cat,
+            items: (cat.menu_items || []).filter(matchesSearch),
+          }))
+          .filter((g) => g.items.length > 0)
+      : []
 
    
 
@@ -99,7 +108,7 @@ export default function MenuPageClient({
       <div className="max-w-7xl relative mx-auto  bg-white z-10 py-2">
         {/* Search Filter */}
 
-        <div className="sticky top-0 w-full  py-2 bg-white z-10">
+        <div className="sticky top-0 w-full  py-2 bg-white z-1111">
         <div className="mb-2 px-4">
           <div className="relative">
             <input
@@ -146,17 +155,58 @@ export default function MenuPageClient({
         )}
         </div>
 
-        {/* Menu Items Grid */}
-        {currentItems.length > 0 ? (
-         
+        {/* Menu Items */}
+        {selectedCategoryId === null ? (
+          groupedCategories.length > 0 ? (
+            <div className="px-4 space-y-8">
+              {groupedCategories.map(({ category, items }) => (
+                <section key={category.id}>
+                  <div className="sticky top-28 z-10 -mx-4 px-4 py-2 bg-white/95 backdrop-blur border-b border-gray-100">
+                    <div className="flex items-center justify-between gap-3">
+                      <h2 className="text-lg font-extrabold text-text-primary">
+                        {category.name}
+                      </h2>
+                      <span className="text-xs font-semibold text-gray-500">
+                        {items.length}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {items.map((item) => (
+                      <div key={item.id}>
+                        <Item item={item} handleOpenModal={handleOpenModal} />
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500">
+                {searchQuery
+                  ? `No items found matching "${searchQuery}"`
+                  : 'No items in this restaurant'}
+              </p>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="mt-2 text-green-600 hover:text-green-700 underline"
+                >
+                  Clear search
+                </button>
+              )}
+            </div>
+          )
+        ) : currentItems.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 px-4 gap-3">
             {currentItems.map((item) => (
-             <div key={item.id}>
-               <Item item={item} handleOpenModal={handleOpenModal} />
+              <div key={item.id}>
+                <Item item={item} handleOpenModal={handleOpenModal} />
               </div>
             ))}
           </div>
-        
         ) : (
           <div className="text-center py-12">
             <p className="text-gray-500">
