@@ -13,9 +13,9 @@ import { ChevronDown } from "lucide-react"
 
 
 interface Props {
-  initialData: RestaurantData
-  tableNumber: string
-  restaurantId: string
+  initialData?: RestaurantData
+  tableNumber?: string
+  restaurantId?: string
 }
 
 export default function MenuPageClient({
