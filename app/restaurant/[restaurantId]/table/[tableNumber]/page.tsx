@@ -78,7 +78,7 @@ export default async function Page({ params }: PageParams) {
 
     console.log(categoriesRes)
 
-    const restaurantData: RestaurantData = {
+    const restaurantData  = {
       restaurant: restaurantRes.data,
       categories: categoriesRes.data || []
     }

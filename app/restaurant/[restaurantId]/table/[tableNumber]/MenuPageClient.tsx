@@ -8,7 +8,8 @@ import { useCart } from "@/context/CartContext"
 import Item from "./Item"
 import Category from "./Category"
 import { Search } from "lucide-react"
-import { UtensilsCrossed } from "lucide-react"
+import { ShoppingBag } from "lucide-react"
+import { ChevronDown } from "lucide-react"
 
 
 interface Props {
@@ -31,6 +32,7 @@ export default function MenuPageClient({
   const [isOverlayOpen, setIsOverlayOpen] = useState(false)
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<RestaurantData['categories'][0]['menu_items'][0] | null>(null)
+  const [lang, setLang] = useState<'fr' | 'en'>('fr')
 
   
 
@@ -92,19 +94,19 @@ export default function MenuPageClient({
               )}
              
             </div>
-            {/* Cart Button */}
-            <button
-              onClick={() => setIsCartOpen(true)}
-              className="relative bg-primary hover:bg-primary/70 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-            >
-              <UtensilsCrossed className="w-5 h-5" />
-              <span>Cart</span>
-              {getItemCount() > 0 && (
-                <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
-                  {getItemCount()}
-                </span>
-              )}
-            </button>
+            {/* Language selector (header) */}
+            <div className="relative">
+              <select
+                value={lang}
+                onChange={(e) => setLang(e.target.value as 'fr' | 'en')}
+                aria-label="Language"
+                className="appearance-none h-10 rounded-xl border-2 border-primary/40 bg-white pl-4 pr-10 text-sm font-bold text-primary shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                <option value="fr">fr</option>
+                <option value="en">en</option>
+              </select>
+              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+            </div>
           </div>
         </div>
       </div>
@@ -120,7 +122,7 @@ export default function MenuPageClient({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search items by name..."
-              className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-1 focus:ring-primary/80 outline-none  text-lg"
+              className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-1 bg-gray-200 focus:ring-primary/80 outline-none  text-lg"
             />
             <span className="absolute left-3 top-1/2  transform -translate-y-1/2 text-gray-400">
               <Search className="w-4 h-4" />
@@ -230,32 +232,18 @@ export default function MenuPageClient({
         )}
       </div>
 
-      {/* Floating Cart Button - Shows when cart is not empty */}
-      {getItemCount() > 0 && !anyModalOpen && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white  shadow-lg z-40 px-4 py-2">
-          <button
-            onClick={() => setIsCartOpen(true)}
-            className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 shadow-lg shadow-primary px-6 rounded-full transition-colors flex items-center justify-between"
-          >
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <UtensilsCrossed className="w-5 h-5" />
-                <span className="absolute -top-2 -right-2 bg-white text-primary text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {getItemCount()}
-                </span>
-              </div>
-              <div className="text-left">
-                <div className="text-lg">${getTotal().toFixed(2)}</div>
-              </div>
-            </div>
-            <span className="text-xl">→</span>
-          </button>
-        </div>
-      )}
-
-      {/* Add padding bottom when cart button is visible */}
-      {getItemCount() > 0 && !anyModalOpen && (
-        <div className="h-20" />
+      {/* Floating Cart Button */}
+      {!anyModalOpen && (
+        <button
+          onClick={() => setIsCartOpen(true)}
+          aria-label="Open cart"
+          className="fixed bottom-5 right-5 z-40 h-14 w-14 rounded-full bg-white border-2 border-primary/40 ring-2 ring-primary/20 shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center"
+        >
+          <span className="absolute -top-2 -left-2 h-7 w-7 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center shadow">
+            {getItemCount()}
+          </span>
+          <ShoppingBag className="w-6 h-6 text-primary" />
+        </button>
       )}
 
       {isModalOpen && selectedItem && (

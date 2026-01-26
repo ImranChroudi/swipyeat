@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import { CartItem, Modifier, ItemVariant, MenuItem } from '@/types'
 import { useMenuItemDetails } from '@/hooks/useMenuItemDetails'
@@ -34,7 +34,6 @@ export default function MenuItemModal({
   const [showSelectedExtras, setShowSelectedExtras] = useState(true)
   const [specialInstructions, setSpecialInstructions] = useState('')
   const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null)
-  const defaultsInitializedRef = useRef(false)
   const [variantError, setVariantError] = useState(false)
   const variantsRef = useRef<HTMLDivElement | null>(null)
 
@@ -48,15 +47,6 @@ export default function MenuItemModal({
   )
 
   if (!isOpen) return null
-
-  // Free modifiers default to "With" (we keep this as internal default for the toggle UI)
-  useEffect(() => {
-    if (defaultsInitializedRef.current) return
-    if (loading) return
-    if (!modifiers.length) return
-    // no state update needed for "with" default; we only track "without" for free mods
-    defaultsInitializedRef.current = true
-  }, [loading, modifiers])
 
   // Calculate total price
   const variantPrice = selectedVariant?.price_adjustment || 0
@@ -156,7 +146,7 @@ export default function MenuItemModal({
   
   return (
     <div
-      className="fixed inset-0 bg-white z-[1111] bg-opacity-50 z-50 min-h-screen pb-[100px] overflow-y-auto"
+      className="fixed inset-0 bg-white bg-opacity-50 z-1111 min-h-screen pb-[100px] overflow-y-auto"
       onClick={onClose}
     >
       {editingCartItem && (
@@ -199,7 +189,7 @@ export default function MenuItemModal({
         </div>
 
         {/* White Card Overlay */}
-        <div className="relative mt-[40vh] -mt-8 bg-white rounded-t-4xl min-h-[60vh]">
+        <div className="relative -mt-8 bg-white rounded-t-4xl min-h-[60vh]">
           <div className="p-6">
             {/* Item Header */}
             <div className="mb-6">
@@ -291,38 +281,46 @@ export default function MenuItemModal({
                     Please choose your variant
                   </div>
                 )}
-                <div className="space-y-3">
-                  {variants.map((variant) => (
-                    <label
-                      key={variant.id}
-                      className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                        selectedVariant?.id === variant.id
-                          ? 'border-green-500 bg-green-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="variant"
-                        checked={selectedVariant?.id === variant.id}
-                        onChange={() => handleSelectVariant(variant)}
-                        className="mt-1 w-5 h-5 text-green-500 cursor-pointer"
-                      />
-                      <div className="ml-3  flex justify-between w-full flex-1">
-                        <div className="font-bold">{variant.name}</div>
-                        {variant.name_ar && (
-                          <div className="text-sm text-gray-600 text-right">
-                            {variant.name_ar}
+                <div className="flex gap-3 overflow-x-auto flex-nowrap pb-1">
+                  {variants.map((variant) => {
+                    const isSelected = selectedVariant?.id === variant.id
+                    const variantPrice = item.base_price + (variant.price_adjustment || 0)
+
+                    return (
+                      <button
+                        key={variant.id}
+                        type="button"
+                        onClick={() => handleSelectVariant(variant)}
+                        className={`shrink-0 min-w-[120px] rounded-2xl border-2 px-4 py-3 text-left transition-colors ${
+                          isSelected
+                            ? 'border-green-500 bg-green-50'
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                        aria-pressed={isSelected}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className={`text-sm font-extrabold ${isSelected ? 'text-green-700' : 'text-text-primary'}`}>
+                              {variant.name}
+                            </div>
+                            <div className={`text-sm font-semibold ${isSelected ? 'text-green-600' : 'text-gray-700'}`}>
+                              {variantPrice.toFixed(0)}dh
+                            </div>
                           </div>
-                        )}
-                        {/* <div className="text-sm text-gray-500 mt-1">
-                          {variant.name === 'Medium Rare' && 'Warm red center'}
-                          {variant.name === 'Medium' && 'Warm pink center'}
-                          {variant.name === 'Well Done' && 'Cooked throughout'}
-                        </div> */}
-                      </div>
-                    </label>
-                  ))}
+                          <span
+                            aria-hidden="true"
+                            className={`mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+                              isSelected ? 'border-green-500' : 'border-gray-300'
+                            }`}
+                          >
+                            {isSelected && (
+                              <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
+                            )}
+                          </span>
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )}

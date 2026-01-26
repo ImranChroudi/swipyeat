@@ -223,33 +223,46 @@ export default function EditCartItemModal({
                     Please choose your variant
                   </div>
                 )}
-                <div className="space-y-3">
-                  {variants.map((variant) => (
-                    <label
+                <div className="flex gap-3 overflow-x-auto flex-nowrap pb-1">
+                  {variants.map((variant) => {
+                    const isSelected = selectedVariant?.id === variant.id
+                    const variantPrice = menuItem.base_price + (variant.price_adjustment || 0)
+
+                    return (
+                      <button
                       key={variant.id}
-                      className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                        selectedVariant?.id === variant.id
+                        type="button"
+                        onClick={() => handleSelectVariant(variant)}
+                        className={`shrink-0 min-w-[120px] rounded-2xl border-2 px-4 py-3 text-left transition-colors ${
+                          isSelected
                           ? 'border-green-500 bg-green-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="variant"
-                        checked={selectedVariant?.id === variant.id}
-                        onChange={() => handleSelectVariant(variant)}
-                        className="mt-1 w-5 h-5 text-green-500 cursor-pointer"
-                      />
-                      <div className="ml-3 flex">
-                        <div className="font-bold">{variant.name}</div>
-                        {variant.name_ar && (
-                          <div className="text-sm text-gray-600 text-right">
-                            {variant.name_ar}
+                            : 'border-gray-200 bg-white hover:border-gray-300'
+                        }`}
+                        aria-pressed={isSelected}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <div className={`text-sm font-extrabold ${isSelected ? 'text-green-700' : 'text-text-primary'}`}>
+                              {variant.name}
+                            </div>
+                            <div className={`text-sm font-semibold ${isSelected ? 'text-green-600' : 'text-gray-700'}`}>
+                              {variantPrice.toFixed(0)}dh
+                            </div>
                           </div>
-                        )}
+                          <span
+                            aria-hidden="true"
+                            className={`mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+                              isSelected ? 'border-green-500' : 'border-gray-300'
+                            }`}
+                          >
+                            {isSelected && (
+                              <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
+                            )}
+                          </span>
                       </div>
-                    </label>
-                  ))}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )}
