@@ -46,7 +46,15 @@ export function useMenuItemDetails(menuItemId: string) {
             .eq('is_active', true)
 
           if (modifiersRes.error) throw modifiersRes.error
-          setModifiers(modifiersRes.data || [])
+          const list = (modifiersRes.data || []).slice()
+          // UI preference: show free modifiers first, paid modifiers last
+          list.sort((a, b) => {
+            const aPaid = (a.price ?? 0) > 0
+            const bPaid = (b.price ?? 0) > 0
+            if (aPaid !== bPaid) return aPaid ? 1 : -1
+            return (a.name ?? '').localeCompare(b.name ?? '')
+          })
+          setModifiers(list)
         }
       } catch (err) {
         console.error('Error fetching item details:', err)

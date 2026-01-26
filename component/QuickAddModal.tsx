@@ -19,59 +19,54 @@ export default function QuickAddModal({
   const { addItem } = useCart()
   const { modifiers, menuItemModifiers, loading } = useMenuItemDetails(item.id)
 
-  const [selectedModifiers, setSelectedModifiers] = useState<
-    Map<string, { modifier: Modifier; selected: boolean }>
-  >(new Map())
-  const [removedModifierIds, setRemovedModifierIds] = useState<Set<string>>(
-    () => new Set()
-  )
+  const [addModifierIds, setAddModifierIds] = useState<Set<string>>(() => new Set())
+  const [removeModifierIds, setRemoveModifierIds] = useState<Set<string>>(() => new Set())
 
   if (!isOpen) return null
 
   // Calculate total price
-  const modifiersPrice = Array.from(selectedModifiers.values()).reduce(
-    (sum, m) => (m.selected ? sum + m.modifier.price : sum),
-    0
-  )
+  const modifiersPrice = Array.from(addModifierIds).reduce((sum, id) => {
+    const price = modifiers.find((m) => m.id === id)?.price ?? 0
+    return sum + price
+  }, 0)
   const itemTotal = item.base_price + modifiersPrice
 
-  const handleModifierToggle = (modifier: Modifier) => {
-    const key = modifier.id
-    const current = selectedModifiers.get(key)
-
-    if (current) {
-      const newMap = new Map(selectedModifiers)
-      newMap.set(key, { ...current, selected: !current.selected })
-      setSelectedModifiers(newMap)
-    } else {
-      const newMap = new Map(selectedModifiers)
-      newMap.set(key, { modifier, selected: true })
-      setSelectedModifiers(newMap)
+  const setModifierChoice = (modifier: Modifier, choice: 'with' | 'without') => {
+    const id = modifier.id
+    // price == 0: treat as ingredient toggle (With = default, Without = send to kitchen remove list)
+    if (modifier.price === 0) {
+      if (choice === 'without') setRemoveModifierIds((prev) => new Set(prev).add(id))
+      else
+        setRemoveModifierIds((prev) => {
+          if (!prev.has(id)) return prev
+          const next = new Set(prev)
+          next.delete(id)
+          return next
+        })
+      // never include free items in paid extras list
+      setAddModifierIds((prev) => {
+        if (!prev.has(id)) return prev
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+      return
     }
 
-    // Can't be both add + remove
-    setRemovedModifierIds((prev) => {
-      if (!prev.has(key)) return prev
+    // price > 0: treat as paid extra (With = add, Without = not added)
+    if (choice === 'with') setAddModifierIds((prev) => new Set(prev).add(id))
+    else
+      setAddModifierIds((prev) => {
+        if (!prev.has(id)) return prev
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    // never put paid extras in remove list
+    setRemoveModifierIds((prev) => {
+      if (!prev.has(id)) return prev
       const next = new Set(prev)
-      next.delete(key)
-      return next
-    })
-  }
-
-  const handleModifierRemoveToggle = (modifier: Modifier) => {
-    const key = modifier.id
-    // If we mark as remove, ensure it's not in "add"
-    const current = selectedModifiers.get(key)
-    if (current?.selected) {
-      const newMap = new Map(selectedModifiers)
-      newMap.set(key, { ...current, selected: false })
-      setSelectedModifiers(newMap)
-    }
-
-    setRemovedModifierIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
+      next.delete(id)
       return next
     })
   }
@@ -84,27 +79,23 @@ export default function QuickAddModal({
       quantity: 1,
       base_price: item.base_price,
       selectedVariant: undefined,
-      selectedModifiers: Array.from(selectedModifiers.values())
-        .filter((m) => m.selected)
-        .map((m) => ({
-          modifierId: m.modifier.id,
-          modifierName: m.modifier.name,
-          price: m.modifier.price,
-        })),
+      selectedModifiers: modifiers
+        .filter((m) => m.price > 0 && addModifierIds.has(m.id))
+        .map((m) => ({ modifierId: m.id, modifierName: m.name, price: m.price })),
       removedModifiers: modifiers
-        .filter((m) => removedModifierIds.has(m.id))
+        .filter((m) => m.price === 0 && removeModifierIds.has(m.id))
         .map((m) => ({ modifierId: m.id, modifierName: m.name })),
       specialInstructions: undefined,
     })
     onClose()
     // Reset selections
-    setSelectedModifiers(new Map())
-    setRemovedModifierIds(new Set())
+    setAddModifierIds(new Set())
+    setRemoveModifierIds(new Set())
   }
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <div
@@ -126,11 +117,22 @@ export default function QuickAddModal({
           {/* Modifiers Section */}
           {loading ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">Loading modifiers...</p>
+              <div className="flex items-center justify-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="h-9 w-9 rounded-full border-4 border-gray-200 border-t-primary animate-spin" />
+                  <div className="text-sm font-semibold text-gray-600">Please wait…</div>
+                  <div className="text-xs text-gray-500">Loading options…</div>
+                </div>
+              </div>
             </div>
           ) : modifiers.length > 0 ? (
             <div className="mb-6">
               <h3 className="text-lg font-bold mb-4">Add Extras</h3>
+              {modifiers.some((m) => (m.price ?? 0) > 0) && (
+                <div className="mb-3 text-xs font-bold text-gray-600">
+                  Paid extras
+                </div>
+              )}
               <div className="space-y-3">
                 {modifiers.map((modifier) => {
                   const isRequired =
@@ -138,54 +140,42 @@ export default function QuickAddModal({
                       (m) => m.modifier_id === modifier.id
                     )?.is_required || false
 
-                  const isSelected =
-                    selectedModifiers.get(modifier.id)?.selected || false
-                  const isRemoved = removedModifierIds.has(modifier.id)
+                  const choice =
+                    modifier.price === 0
+                      ? removeModifierIds.has(modifier.id)
+                        ? 'without'
+                        : 'with'
+                      : addModifierIds.has(modifier.id)
+                        ? 'with'
+                        : 'without'
 
                   return (
-                    <label
+                    <div
                       key={modifier.id}
                       className={`group flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all ${
-                        isRemoved
+                        choice === 'without'
                           ? 'border-red-300 bg-red-50/60 shadow-sm'
-                          : isSelected
+                          : choice === 'with'
                             ? 'border-primary bg-primary/5 shadow-sm'
                             : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                       }`}
                     >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => handleModifierToggle(modifier)}
-                        className="sr-only"
-                      />
-                      <span
-                        aria-hidden="true"
-                        className={`mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-md border transition-colors ${
-                          isSelected
-                            ? 'border-primary bg-primary text-white'
-                            : 'border-gray-300 bg-white text-transparent group-hover:border-gray-400'
-                        }`}
-                      >
-                        ✓
-                      </span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
                           <div className="font-semibold text-text-primary leading-snug">
                             {modifier.name}
                           </div>
-                         
-                           {modifier.name_ar && (
-                          <div className="text-xs text-gray-500 mt-1 text-right">
-                            {modifier.name_ar}
-                          </div>
-                        )}
-                        </div>
-                        {modifier.price > 0 && (
+                          {modifier.price > 0 && (
                             <span className="shrink-0 rounded-full bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 text-xs font-bold">
                               {`+$${modifier.price.toFixed(2)}`}
                             </span>
                           )}
+                        </div>
+                        {modifier.name_ar && (
+                          <div className="text-xs text-gray-500 mt-1 text-right">
+                            {modifier.name_ar}
+                          </div>
+                        )}
                        
                         {isRequired && (
                           <div className="mt-2 text-xs font-semibold text-red-600">
@@ -193,28 +183,37 @@ export default function QuickAddModal({
                           </div>
                         )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          handleModifierRemoveToggle(modifier)
-                        }}
-                        className={`shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-lg border transition-colors ${
-                          isRemoved
-                            ? 'border-red-400 bg-red-600 text-white'
-                            : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                        }`}
-                        aria-label={
-                          isRemoved
-                            ? `Undo remove ${modifier.name}`
-                            : `Remove ${modifier.name} from plate`
-                        }
-                        title={isRemoved ? 'Undo remove' : "Don't put this on the plate"}
+                      <div
+                        className="shrink-0 inline-flex items-center rounded-full bg-gray-100 p-1 border border-gray-200"
+                        role="group"
+                        aria-label={`${modifier.name} with/without`}
                       >
-                        ✕
-                      </button>
-                    </label>
+                        <button
+                          type="button"
+                          onClick={() => setModifierChoice(modifier, 'with')}
+                          aria-pressed={choice === 'with'}
+                          className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                            choice === 'with'
+                              ? 'bg-primary text-white shadow-sm'
+                              : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                        >
+                          With
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setModifierChoice(modifier, 'without')}
+                          aria-pressed={choice === 'without'}
+                          className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                            choice === 'without'
+                              ? 'bg-red-600 text-white shadow-sm'
+                              : 'text-gray-600 hover:text-gray-900'
+                          }`}
+                        >
+                          Without
+                        </button>
+                      </div>
+                    </div>
                   )
                 })}
               </div>

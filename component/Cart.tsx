@@ -9,7 +9,7 @@ import OrderQRCode from './OrderQRCode'
 import EditCartItemModal from './EditCartItemModal'
 import { supabase } from '@/lib/supabase'
 import { MenuItem, CartItem } from '@/types'
-import { Pencil, Trash2 } from 'lucide-react'
+import { ReceiptText, Trash2 } from 'lucide-react'
 
 
 interface CartProps {
@@ -51,6 +51,8 @@ export default function Cart({ onClose, tableNumber, restaurantId }: CartProps) 
     // Create order
     createOrder(tableNumber, items, getSubtotal(), getServiceFee(), getTotal())
     setShowQRCode(true)
+    // Immediately clear cart (also clears localStorage)
+    clearCart()
   }
 
   const formatCustomizations = (item: typeof items[0]) => {
@@ -128,7 +130,7 @@ export default function Cart({ onClose, tableNumber, restaurantId }: CartProps) 
       )}
       {pendingRemove && (
         <div
-          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-white flex items-center justify-center p-4"
           onClick={() => setPendingRemove(null)}
           role="dialog"
           aria-modal="true"
@@ -252,7 +254,7 @@ export default function Cart({ onClose, tableNumber, restaurantId }: CartProps) 
 
                     {/* Selected modifiers (removable) */}
                     {item.selectedModifiers?.length ? (
-                      <div className="flex flex-wrap gap-2 mb-3">
+                      <div className="flex gap-2 mb-3 overflow-x-auto flex-nowrap pr-1">
                         {item.selectedModifiers.map((mod) => (
                           <span
                             key={mod.modifierId}
@@ -280,7 +282,7 @@ export default function Cart({ onClose, tableNumber, restaurantId }: CartProps) 
 
                     {/* Removed modifiers (kitchen: don't put) */}
                     {item.removedModifiers?.length ? (
-                      <div className="flex flex-wrap gap-2 mb-3">
+                      <div className="flex gap-2 mb-3 overflow-x-auto flex-nowrap pr-1">
                         {item.removedModifiers.map((mod) => (
                           <span
                             key={mod.modifierId}
@@ -313,7 +315,7 @@ export default function Cart({ onClose, tableNumber, restaurantId }: CartProps) 
                           onClick={() =>
                             handleQuantityChange(item.id, item.quantity - 1)
                           }
-                          className=" inline-flex items-center justify-center text-xl font-bold bg-white hover:bg-gray-50 active:bg-gray-100 rounded-lg px-4 py-1 border border-gray-200 shadow-sm shadow-primary/60"
+                          className=" inline-flex items-center justify-center text-xl font-bold bg-white hover:bg-gray-50 active:bg-gray-100 rounded-lg px-4  border border-gray-200 shadow-sm shadow-primary/60"
                           aria-label="Decrease quantity"
                         >
                           -
@@ -325,7 +327,7 @@ export default function Cart({ onClose, tableNumber, restaurantId }: CartProps) 
                           onClick={() =>
                             handleQuantityChange(item.id, item.quantity + 1)
                           }
-                          className=" inline-flex items-center justify-center text-xl font-bold bg-white hover:bg-gray-50 active:bg-gray-100 rounded-lg px-4 py-1 border border-gray-200 shadow-sm shadow-primary/60"
+                          className=" inline-flex items-center justify-center text-xl font-bold bg-white hover:bg-gray-50 active:bg-gray-100 rounded-lg px-4  border border-gray-200 shadow-sm shadow-primary/60"
                           aria-label="Increase quantity"
                         >
                           +
@@ -337,7 +339,7 @@ export default function Cart({ onClose, tableNumber, restaurantId }: CartProps) 
                           disabled={isLoadingMenuItem}
                           className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 text-primary hover:text-primary/80 bg-primary/10 hover:bg-primary/15 active:bg-primary/20 px-3 py-2 rounded-lg font-semibold text-sm disabled:opacity-50"
                         >
-                          <Pencil className="w-4 h-4" />
+                          <ReceiptText className="w-4 h-4" />
                           Edit
                         </button>
                         <button
@@ -399,10 +401,7 @@ export default function Cart({ onClose, tableNumber, restaurantId }: CartProps) 
                   <span>Subtotal:</span>
                   <span>${getSubtotal().toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-gray-700">
-                  <span>Service Fee:</span>
-                  <span>${getServiceFee().toFixed(2)}</span>
-                </div>
+               
               </div>
             </div>
           </>

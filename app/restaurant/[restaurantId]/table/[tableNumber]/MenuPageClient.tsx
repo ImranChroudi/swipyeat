@@ -8,6 +8,7 @@ import { useCart } from "@/context/CartContext"
 import Item from "./Item"
 import Category from "./Category"
 import { Search } from "lucide-react"
+import { UtensilsCrossed } from "lucide-react"
 
 
 interface Props {
@@ -27,6 +28,7 @@ export default function MenuPageClient({
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isOverlayOpen, setIsOverlayOpen] = useState(false)
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<RestaurantData['categories'][0]['menu_items'][0] | null>(null)
 
@@ -70,13 +72,15 @@ export default function MenuPageClient({
     setSelectedItem(item)
   }
 
+  const anyModalOpen = isModalOpen || isOverlayOpen
+
 
   if (isCartOpen) {
     return <Cart onClose={() => setIsCartOpen(false)} tableNumber={tableNumber} restaurantId={restaurantId} />
   }
 
   return (
-    <div className={`${isModalOpen ? 'h-screen overflow-hidden' : 'min-h-screen'} relative bg-gray-50 shadow-lg`}>
+    <div className={`${anyModalOpen ? 'h-screen overflow-hidden' : 'min-h-screen'} relative bg-gray-50 shadow-lg`}>
       {/* Header with restaurant info */}
       <div className="bg-white shadow sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
@@ -93,7 +97,7 @@ export default function MenuPageClient({
               onClick={() => setIsCartOpen(true)}
               className="relative bg-primary hover:bg-primary/70 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
             >
-              <span>🛒</span>
+              <UtensilsCrossed className="w-5 h-5" />
               <span>Cart</span>
               {getItemCount() > 0 && (
                 <span className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
@@ -175,7 +179,7 @@ export default function MenuPageClient({
                   <div className="pt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {items.map((item) => (
                       <div key={item.id}>
-                        <Item item={item} handleOpenModal={handleOpenModal} />
+                        <Item item={item} handleOpenModal={handleOpenModal} onOverlayChange={setIsOverlayOpen} />
                       </div>
                     ))}
                   </div>
@@ -203,7 +207,7 @@ export default function MenuPageClient({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 px-4 gap-3">
             {currentItems.map((item) => (
               <div key={item.id}>
-                <Item item={item} handleOpenModal={handleOpenModal} />
+                <Item item={item} handleOpenModal={handleOpenModal} onOverlayChange={setIsOverlayOpen} />
               </div>
             ))}
           </div>
@@ -227,7 +231,7 @@ export default function MenuPageClient({
       </div>
 
       {/* Floating Cart Button - Shows when cart is not empty */}
-      {getItemCount() > 0 && !isModalOpen && (
+      {getItemCount() > 0 && !anyModalOpen && (
         <div className="fixed bottom-0 left-0 right-0 bg-white  shadow-lg z-40 px-4 py-2">
           <button
             onClick={() => setIsCartOpen(true)}
@@ -235,7 +239,7 @@ export default function MenuPageClient({
           >
             <div className="flex items-center gap-3">
               <div className="relative">
-                <span className="text-md">🛒</span>
+                <UtensilsCrossed className="w-5 h-5" />
                 <span className="absolute -top-2 -right-2 bg-white text-primary text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                   {getItemCount()}
                 </span>
@@ -250,7 +254,7 @@ export default function MenuPageClient({
       )}
 
       {/* Add padding bottom when cart button is visible */}
-      {getItemCount() > 0 && !isModalOpen && (
+      {getItemCount() > 0 && !anyModalOpen && (
         <div className="h-20" />
       )}
 

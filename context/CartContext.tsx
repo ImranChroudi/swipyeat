@@ -3,6 +3,8 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react'
 import { CartItem, MenuItem } from '@/types'
 
+const CART_STORAGE_KEY = 'swipyEat_cart_v1'
+
 interface CartContextType {
   items: CartItem[]
   addItem: (item: MenuItem | AddToCartDraft) => void
@@ -31,10 +33,28 @@ type AddToCartDraft = Partial<
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([])
+  const [items, setItems] = useState<CartItem[]>(() => {
+    try {
+      const raw = localStorage.getItem(CART_STORAGE_KEY)
+      if (!raw) return []
+      const parsed = JSON.parse(raw) as unknown
+      return Array.isArray(parsed) ? (parsed as CartItem[]) : []
+    } catch {
+      return []
+    }
+  })
 
-  useEffect(() => { 
-    console.log("items", items)
+  // Persist to localStorage whenever items change
+  useEffect(() => {
+    try {
+      if (items.length === 0) {
+        localStorage.removeItem(CART_STORAGE_KEY)
+        return
+      }
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items))
+    } catch {
+      // ignore quota / privacy mode errors
+    }
   }, [items])
 
   const calculateLineTotal = (cartLike: {
@@ -114,7 +134,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     )
 
     if (existingItemIndex !== -1) {
-      console.log("existingItemIndex", existingItemIndex)
       // Update quantity if item exists
       const updatedItems = [...items]
       updatedItems[existingItemIndex].quantity += item.quantity
@@ -129,13 +148,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       id: `${Date.now()}-${Math.random()}`,
       totalPrice: calculateLineTotal(item),
     }
-    console.log("newItem", newItem)
     setItems([...items, newItem])
   }
 
   const updateItem = (id: string, updates: Partial<CartItem>) => {
-    console.log("item updated : ", id)
-
     setItems((prevItems) =>
       prevItems.map((item) => {
         if (item.id === id) {
@@ -167,6 +183,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const clearCart = () => {
     setItems([])
+    try {
+      localStorage.removeItem(CART_STORAGE_KEY)
+    } catch {
+      // ignore
+    }
   }
 
   const getSubtotal = () => {
@@ -182,8 +203,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return Math.max(1.5, getSubtotal() * 0.06)
   }
 
+
   const getTotal = () => {
-    return getSubtotal() + getServiceFee()
+    return getSubtotal()
   }
 
   const getItemCount = () => {

@@ -6,9 +6,17 @@ import { MenuItem, CartItem } from '@/types'
 import { useCart } from '@/context/CartContext'
 import { useMemo, useState } from 'react'
 import EditCartItemModal from '@/component/EditCartItemModal'
-import { Pencil } from 'lucide-react'
+import { ReceiptText } from 'lucide-react'
 
-const Item = ({ item, handleOpenModal }: { item: MenuItem; handleOpenModal: (item: MenuItem) => void }) => {
+const Item = ({
+  item,
+  handleOpenModal,
+  onOverlayChange,
+}: {
+  item: MenuItem
+  handleOpenModal: (item: MenuItem) => void
+  onOverlayChange?: (open: boolean) => void
+}) => {
 
   const { addItem, items: cartItems } = useCart()
   const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null)
@@ -47,7 +55,10 @@ const Item = ({ item, handleOpenModal }: { item: MenuItem; handleOpenModal: (ite
             cartItem={editingCartItem}
             menuItem={item}
             isOpen={!!editingCartItem}
-            onClose={() => setEditingCartItem(null)}
+            onClose={() => {
+              setEditingCartItem(null)
+              onOverlayChange?.(false)
+            }}
           />
         )}
         <div
@@ -83,7 +94,7 @@ const Item = ({ item, handleOpenModal }: { item: MenuItem; handleOpenModal: (ite
                   </h3>
                   {isAdded && (
                     <span className="text-xs font-semibold bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                      Added ×{totalQtyInCart}
+                       ×{totalQtyInCart}
                     </span>
                   )}
                 
@@ -93,20 +104,7 @@ const Item = ({ item, handleOpenModal }: { item: MenuItem; handleOpenModal: (ite
                   <p className="text-text-secondary max-h-max mb-2 text-sm line-clamp-2 flex-1">
                     {item.description}
                   </p>
-                  {isAdded && (primaryDetails || matchingCartItems.length > 1) && (
-                    <div className="text-xs text-green-800/90">
-                      {primaryDetails ? (
-                        <span>{primaryDetails}</span>
-                      ) : (
-                        <span>In cart</span>
-                      )}
-                      {matchingCartItems.length > 1 && (
-                        <span className="ml-1 text-green-700">
-                          (+{matchingCartItems.length - 1} more)
-                        </span>
-                      )}
-                    </div>
-                  )}
+                 
                  </div>
 
                  
@@ -124,10 +122,11 @@ const Item = ({ item, handleOpenModal }: { item: MenuItem; handleOpenModal: (ite
                           onClick={(e) => {
                             e.stopPropagation()
                             setEditingCartItem(primaryCartItem)
+                            onOverlayChange?.(true)
                           }}
                           className="inline-flex items-center gap-2 bg-primary cursor-pointer shadow-md shadow-primary/40 hover:bg-primary/80 active:bg-primary/90 text-white px-3 py-2 rounded-lg font-semibold text-sm transition-colors"
                         >
-                          <Pencil className="w-4 h-4" />
+                          <ReceiptText className="w-4 h-4" />
                           Edit
                         </button>
                       ) : (

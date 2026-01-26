@@ -1,11 +1,11 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Image from 'next/image'
 import { CartItem, Modifier, ItemVariant, MenuItem } from '@/types'
 import { useMenuItemDetails } from '@/hooks/useMenuItemDetails'
 import { useCart } from '@/context/CartContext'
-import { ChevronLeft, Pencil } from 'lucide-react'
+import { ChevronLeft, ReceiptText } from 'lucide-react'
 import EditCartItemModal from '@/component/EditCartItemModal'
 
 
@@ -27,15 +27,16 @@ export default function MenuItemModal({
 
   const [quantity, setQuantity] = useState(1)
   const [selectedVariant, setSelectedVariant] = useState<ItemVariant | null>(null)
-  const [selectedModifiers, setSelectedModifiers] = useState<
-    Map<string, { modifier: Modifier; selected: boolean }>
-  >(new Map())
-  const [removedModifierIds, setRemovedModifierIds] = useState<Set<string>>(
-    () => new Set()
-  )
+  // Paid extras selected (price > 0)
+  const [addModifierIds, setAddModifierIds] = useState<Set<string>>(() => new Set())
+  // Free ingredients the user wants removed (price === 0)
+  const [removeModifierIds, setRemoveModifierIds] = useState<Set<string>>(() => new Set())
   const [showSelectedExtras, setShowSelectedExtras] = useState(true)
   const [specialInstructions, setSpecialInstructions] = useState('')
   const [editingCartItem, setEditingCartItem] = useState<CartItem | null>(null)
+  const defaultsInitializedRef = useRef(false)
+  const [variantError, setVariantError] = useState(false)
+  const variantsRef = useRef<HTMLDivElement | null>(null)
 
   const matchingCartItems = useMemo(
     () => cartItems.filter((ci) => ci.menuItemId === item.id),
@@ -48,59 +49,73 @@ export default function MenuItemModal({
 
   if (!isOpen) return null
 
+  // Free modifiers default to "With" (we keep this as internal default for the toggle UI)
+  useEffect(() => {
+    if (defaultsInitializedRef.current) return
+    if (loading) return
+    if (!modifiers.length) return
+    // no state update needed for "with" default; we only track "without" for free mods
+    defaultsInitializedRef.current = true
+  }, [loading, modifiers])
+
   // Calculate total price
   const variantPrice = selectedVariant?.price_adjustment || 0
-  const modifiersPrice = Array.from(selectedModifiers.values()).reduce(
-    (sum, m) => (m.selected ? sum + m.modifier.price : sum),
-    0
-  )
+  const modifiersPrice = Array.from(addModifierIds).reduce((sum, id) => {
+    const price = modifiers.find((m) => m.id === id)?.price ?? 0
+    return sum + price
+  }, 0)
   const itemTotal = (item.base_price + variantPrice + modifiersPrice) * quantity
 
-  const handleModifierToggle = (modifier: Modifier) => {
-    const key = modifier.id
-    const current = selectedModifiers.get(key)
-
-    if (current) {
-      const newMap = new Map(selectedModifiers)
-      newMap.set(key, { ...current, selected: !current.selected })
-      setSelectedModifiers(newMap)
-      if (!current.selected) setShowSelectedExtras(true)
-    } else {
-      const newMap = new Map(selectedModifiers)
-      newMap.set(key, { modifier, selected: true })
-      setSelectedModifiers(newMap)
-      setShowSelectedExtras(true)
-    }
-
-    // If it was marked as "remove", clear that (can't be both add + remove).
-    setRemovedModifierIds((prev) => {
-      if (!prev.has(key)) return prev
-      const next = new Set(prev)
-      next.delete(key)
-      return next
-    })
-  }
-
-  const handleModifierRemoveToggle = (modifier: Modifier) => {
-    const key = modifier.id
-    // If we mark as "remove", ensure it's not in "add"
-    const current = selectedModifiers.get(key)
-    if (current?.selected) {
-      const newMap = new Map(selectedModifiers)
-      newMap.set(key, { ...current, selected: false })
-      setSelectedModifiers(newMap)
-    }
-
-    setRemovedModifierIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
+  const setModifierChoice = (modifier: Modifier, choice: 'with' | 'without') => {
+    const id = modifier.id
     setShowSelectedExtras(true)
+
+    if (modifier.price === 0) {
+      // Free ingredient: With default; Without => add to remove list
+      if (choice === 'without') setRemoveModifierIds((prev) => new Set(prev).add(id))
+      else
+        setRemoveModifierIds((prev) => {
+          if (!prev.has(id)) return prev
+          const next = new Set(prev)
+          next.delete(id)
+          return next
+        })
+      // ensure it's not treated as paid extra
+      setAddModifierIds((prev) => {
+        if (!prev.has(id)) return prev
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+      return
+    }
+
+    // Paid extra: With => add; Without => not added
+    if (choice === 'with') setAddModifierIds((prev) => new Set(prev).add(id))
+    else
+      setAddModifierIds((prev) => {
+        if (!prev.has(id)) return prev
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    // paid extras should not be in remove list
+    setRemoveModifierIds((prev) => {
+      if (!prev.has(id)) return prev
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
   }
 
   const handleAddToCart = () => {
+    if (variants.length > 0 && !selectedVariant) {
+      setVariantError(true)
+      variantsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+    setVariantError(false)
+
     addItem({
       menuItemId: item.id,
       menuItemName: item.name,
@@ -114,15 +129,15 @@ export default function MenuItemModal({
             priceAdjustment: selectedVariant.price_adjustment,
           }
         : undefined,
-      selectedModifiers: Array.from(selectedModifiers.values())
-        .filter((m) => m.selected)
+      selectedModifiers: modifiers
+        .filter((m) => m.price > 0 && addModifierIds.has(m.id))
         .map((m) => ({
-          modifierId: m.modifier.id,
-          modifierName: m.modifier.name,
-          price: m.modifier.price,
+          modifierId: m.id,
+          modifierName: m.name,
+          price: m.price,
         })),
       removedModifiers: modifiers
-        .filter((m) => removedModifierIds.has(m.id))
+        .filter((m) => m.price === 0 && removeModifierIds.has(m.id))
         .map((m) => ({
           modifierId: m.id,
           modifierName: m.name,
@@ -135,12 +150,13 @@ export default function MenuItemModal({
 
   const handleSelectVariant = (variant: ItemVariant) => {
     setSelectedVariant(selectedVariant?.id === variant.id ? null : variant)
+    setVariantError(false)
   }
 
   
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 z-50 min-h-screen pb-[100px] overflow-y-auto"
+      className="fixed inset-0 bg-white z-[1111] bg-opacity-50 z-50 min-h-screen pb-[100px] overflow-y-auto"
       onClick={onClose}
     >
       {editingCartItem && (
@@ -156,7 +172,7 @@ export default function MenuItemModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Item Image - Full Screen Top */}
-        <div className="relative h-[50vh] w-full">
+        <div className="fixed top-0  h-[45vh]  w-full">
           {item.image_url ? (
             <Image
               src={item.image_url}
@@ -165,7 +181,7 @@ export default function MenuItemModal({
               className="object-cover"
             />
           ) : (
-            <div className="bg-linear-to-br from-gray-200 to-gray-300 h-full flex items-center justify-center">
+            <div className="bg-linear-to-br  from-gray-200 to-gray-300 h-full flex items-center justify-center">
               <span className="text-gray-500">No image</span>
             </div>
           )}
@@ -183,7 +199,7 @@ export default function MenuItemModal({
         </div>
 
         {/* White Card Overlay */}
-        <div className="relative -mt-8 bg-white rounded-t-3xl min-h-[60vh]">
+        <div className="relative mt-[40vh] -mt-8 bg-white rounded-t-4xl min-h-[60vh]">
           <div className="p-6">
             {/* Item Header */}
             <div className="mb-6">
@@ -248,7 +264,7 @@ export default function MenuItemModal({
                             onClick={() => setEditingCartItem(ci)}
                             className="shrink-0 inline-flex items-center gap-2 text-xs font-semibold text-primary hover:text-primary/80 bg-white/80 hover:bg-white px-3 py-2 rounded-lg border border-green-200"
                           >
-                            <Pencil className="w-3.5 h-3.5" />
+                            <ReceiptText className="w-3.5 h-3.5" />
                             Edit
                           </button>
                         </div>
@@ -263,13 +279,18 @@ export default function MenuItemModal({
 
             {/* VARIANTS SECTION - Cooking Preference */}
             {variants.length > 0 && (
-              <div className="mb-6">
+              <div className="mb-6" ref={variantsRef}>
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-bold">Cooking Preference</h3>
                   <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded">
                     REQUIRED
                   </span>
                 </div>
+                {variantError && (
+                  <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+                    Please choose your variant
+                  </div>
+                )}
                 <div className="space-y-3">
                   {variants.map((variant) => (
                     <label
@@ -307,12 +328,25 @@ export default function MenuItemModal({
             )}
 
             {/* MODIFIERS SECTION - Add Extras */}
-            {!loading && modifiers.length > 0 && (
+            {loading ? (
+              <div className="mb-6">
+                <h3 className="text-lg font-bold mb-4">Add Extras</h3>
+                <div className="flex items-center justify-center py-8">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="h-9 w-9 rounded-full border-4 border-gray-200 border-t-primary animate-spin" />
+                    <div className="text-sm font-semibold text-gray-600">Please wait…</div>
+                    <div className="text-xs text-gray-500">Loading options…</div>
+                  </div>
+                </div>
+              </div>
+            ) : modifiers.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-lg font-bold mb-4">Add Extras</h3>
                 {(() => {
-                  const selected = Array.from(selectedModifiers.values()).filter((m) => m.selected)
-                  if (!selected.length) return null
+                  const withMods = modifiers.filter((m) => m.price > 0 && addModifierIds.has(m.id))
+                  const withoutMods = modifiers.filter((m) => m.price === 0 && removeModifierIds.has(m.id))
+                  const count = withMods.length + withoutMods.length
+                  if (!count) return null
 
                   if (!showSelectedExtras) {
                     return (
@@ -321,7 +355,7 @@ export default function MenuItemModal({
                         onClick={() => setShowSelectedExtras(true)}
                         className="mb-3 inline-flex items-center gap-2 rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-800"
                       >
-                        Show selected extras ({selected.length})
+                        Show selected extras ({count})
                       </button>
                     )
                   }
@@ -330,7 +364,7 @@ export default function MenuItemModal({
                     <div className="mb-3">
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-sm font-semibold text-text-primary">
-                          Selected extras (tap ✕ to remove)
+                          Selected modifiers
                         </div>
                         <button
                           type="button"
@@ -342,102 +376,143 @@ export default function MenuItemModal({
                           ✕
                         </button>
                       </div>
-                      <div className="flex flex-wrap gap-2">
-                        {selected.map(({ modifier }) => (
-                          <span
-                            key={modifier.id}
-                            className="inline-flex items-center gap-2 rounded-full bg-gray-100 text-gray-800 px-3 py-1 text-xs font-semibold border border-gray-200"
-                          >
-                            <span className="max-w-[220px] truncate">{modifier.name}</span>
-                            <button
-                              type="button"
-                              onClick={() => handleModifierToggle(modifier)}
-                              className="shrink-0 text-gray-500 hover:text-gray-800"
-                              aria-label={`Remove ${modifier.name}`}
-                              title="Remove"
-                            >
-                              ✕
-                            </button>
-                          </span>
-                        ))}
-                      </div>
+                      {withMods.length > 0 && (
+                        <div className="mb-2">
+                          <div className="text-xs font-bold text-gray-600 mb-1">With</div>
+                          <div className="flex gap-2 overflow-x-auto flex-nowrap pr-1">
+                            {withMods.map((modifier) => (
+                              <span
+                                key={modifier.id}
+                                className="inline-flex items-center gap-2 rounded-full bg-gray-100 text-gray-800 px-3 py-1 text-xs font-semibold border border-gray-200"
+                              >
+                                <span className="max-w-[220px] truncate">{modifier.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setModifierChoice(modifier, 'without')}
+                                  className="shrink-0 text-gray-500 hover:text-gray-800"
+                                  aria-label={`Set without ${modifier.name}`}
+                                  title="Without"
+                                >
+                                  ✕
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {withoutMods.length > 0 && (
+                        <div>
+                          <div className="text-xs font-bold text-gray-600 mb-1">Without</div>
+                          <div className="flex gap-2 overflow-x-auto flex-nowrap pr-1">
+                            {withoutMods.map((modifier) => (
+                              <span
+                                key={modifier.id}
+                                className="inline-flex items-center gap-2 rounded-full bg-red-50 text-red-800 px-3 py-1 text-xs font-semibold border border-red-200"
+                              >
+                                <span className="max-w-[220px] truncate">No {modifier.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setModifierChoice(modifier, 'with')}
+                                  className="shrink-0 text-red-600 hover:text-red-800"
+                                  aria-label={`Set with ${modifier.name}`}
+                                  title="With"
+                                >
+                                  ✕
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )
                 })()}
+                {modifiers.some((m) => (m.price ?? 0) > 0) && (
+                  <div className="mb-2 text-xs font-bold text-gray-600">
+                    Paid extras
+                  </div>
+                )}
                 <div className="space-y-3">
                   {modifiers.map((modifier) => {
-                    const isSelected =
-                      selectedModifiers.get(modifier.id)?.selected || false
-                    const isRemoved = removedModifierIds.has(modifier.id)
+                    const choice =
+                      modifier.price === 0
+                        ? removeModifierIds.has(modifier.id)
+                          ? 'without'
+                          : 'with'
+                        : addModifierIds.has(modifier.id)
+                          ? 'with'
+                          : 'without'
 
                     return (
-                      <label
+                      <div
                         key={modifier.id}
-                        className={`group flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all ${
-                          isRemoved
+                        className={`group flex flex-col items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all ${
+                          choice === 'without'
                             ? 'border-red-300 bg-red-50/60 shadow-sm'
-                            : isSelected
+                            : choice === 'with'
                               ? 'border-primary bg-primary/5 shadow-sm'
                               : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                         }`}
                       >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => handleModifierToggle(modifier)}
-                          className="sr-only"
-                        />
-                        <span
-                          aria-hidden="true"
-                          className={`mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-md border transition-colors ${
-                            isSelected
-                              ? 'border-primary bg-primary text-white'
-                              : 'border-gray-300 bg-white text-transparent group-hover:border-gray-400'
-                          }`}
-                        >
-                          ✓
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-3">
+                        <div className="w-full flex-1">
+                          <div className="flex  items-start w-full justify-between gap-3">
                             <div className="font-semibold text-text-primary leading-snug">
                               {modifier.name}
                             </div>
+                            {modifier.name_ar && (
+                            <div className="text-xs text-gray-500 mt-1 text-right">
+                              {modifier.name_ar}
+                            </div>
+                          )}
+                          </div>
+                          
+                          
+                        </div>
+
+
+                        <div className='w-full flex items-center justify-between gap-3'>
+                        <div>
                             {modifier.price > 0 && (
                               <span className="shrink-0 rounded-full bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 text-xs font-bold">
                                 {`+$${modifier.price.toFixed(2)}`}
                               </span>
                             )}
-                          </div>
-                          {modifier.name_ar && (
-                            <div className="text-xs text-gray-500 mt-1 text-right">
-                              {modifier.name_ar}
-                            </div>
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            handleModifierRemoveToggle(modifier)
-                          }}
-                          className={`shrink-0 inline-flex items-center justify-center h-8 w-8 rounded-lg border transition-colors ${
-                            isRemoved
-                              ? 'border-red-400 bg-red-600 text-white'
-                              : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                          }`}
-                          aria-label={
-                            isRemoved
-                              ? `Undo remove ${modifier.name}`
-                              : `Remove ${modifier.name} from plate`
-                          }
-                          title={
-                            isRemoved ? 'Undo remove' : "Don't put this on the plate"
-                          }
+                           </div>
+
+                           <div
+                          className="shrink-0 inline-flex items-center rounded-full bg-gray-100 p-1 border border-gray-200"
+                          role="group"
+                          aria-label={`${modifier.name} with/without`}
                         >
-                          ✕
-                        </button>
-                      </label>
+                           
+                         <button
+                            type="button"
+                            onClick={() => setModifierChoice(modifier, 'with')}
+                            aria-pressed={choice === 'with'}
+                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                              choice === 'with'
+                                ? 'bg-primary text-white shadow-sm'
+                                : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                          >
+                            With
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setModifierChoice(modifier, 'without')}
+                            aria-pressed={choice === 'without'}
+                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
+                              choice === 'without'
+                                ? 'bg-red-600 text-white shadow-sm'
+                                : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                          >
+                            Without
+                          </button>
+                        </div>
+                        </div>
+                       
+                      </div>
                     )
                   })}
                 </div>

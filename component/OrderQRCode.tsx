@@ -1,7 +1,6 @@
 'use client'
 
 import { QRCodeSVG } from 'qrcode.react'
-import { useCart } from '@/context/CartContext'
 import { useOrder } from '@/context/OrderContext'
 import { supabase } from '@/lib/supabase'
 import { useEffect, useMemo, useRef } from 'react'
@@ -34,14 +33,15 @@ function generateOrderId() {
   return `order-${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
+function toBase64Url(input: string) {
+  const bytes = new TextEncoder().encode(input)
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+  const b64 = btoa(binary)
+  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+}
+
 export default function OrderQRCode({ tableNumber, onClose }: OrderQRCodeProps) {
-  const {
-    items,
-    getSubtotal,
-    getTaxes,
-    getServiceFee,
-    getTotal,
-  } = useCart()
   const { currentOrder } = useOrder()
 
   // Keep a stable ID even if the component re-renders.
@@ -92,12 +92,16 @@ export default function OrderQRCode({ tableNumber, onClose }: OrderQRCodeProps) 
     }
   }, [orderId, onClose])
 
+  const orderItems = currentOrder?.items ?? []
+  const subtotal = currentOrder?.subtotal ?? 0
+  const taxes = 0
+  const total = currentOrder?.total ?? subtotal
+
   // Create order data object
   const orderData = {
     order_request_id: currentOrder?.orderNumber,
     table_id : tableNumber,
-    
-    items: items.map((item) => ({
+    items: orderItems.map((item) => ({
       plat_id: item.menuItemId,
       menuItemName: item.menuItemName,
       quantity: item.quantity,
@@ -119,19 +123,21 @@ export default function OrderQRCode({ tableNumber, onClose }: OrderQRCodeProps) 
       specialInstructions: item.specialInstructions,
       totalPrice: item.totalPrice,
     })),
-    subtotal: getSubtotal(),
-    taxes: getTaxes(),
-    serviceFee: getServiceFee(),
-    total: getTotal(),
+    subtotal,
+    taxes,
+    total,
     requested_at: new Date().toISOString(),
   }
 
   // Convert order data to JSON string for QR code
   const qrData = JSON.stringify(orderData)
+  // QR should open a website, but still carry the full order payload.
+  // NOTE: very large orders can produce very large URLs; if that becomes an issue, we can switch to storing in Supabase and only encode an id.
+  const qrUrl = `https://www.google.com/#order=${toBase64Url(qrData)}`
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+    <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-md w-full p-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold">Order Confirmation</h2>
@@ -161,14 +167,14 @@ export default function OrderQRCode({ tableNumber, onClose }: OrderQRCodeProps) 
         <div className="flex flex-col items-center mb-6">
           <div className="bg-white p-4 rounded-lg border-2 border-gray-200 mb-4">
             <QRCodeSVG
-              value={qrData}
+              value={qrUrl}
               size={256}
               level="H"
               includeMargin={true}
             />
           </div>
           <p className="text-sm text-gray-600 text-center">
-            Show this QR code to your waiter
+            Scan opens google.com and includes your order data
           </p>
         </div>
 
@@ -178,22 +184,20 @@ export default function OrderQRCode({ tableNumber, onClose }: OrderQRCodeProps) 
             <p className="text-lg font-bold mb-2">Table: {tableNumber}</p>
             <p className="text-xs text-gray-500 break-all">Order ID: {orderId}</p>
             <p className="text-sm text-gray-600">
-              {items.length} item{items.length !== 1 ? 's' : ''} • Total: ${getTotal().toFixed(2)}
+              {orderItems.length} item{orderItems.length !== 1 ? 's' : ''} • Total: ${total.toFixed(2)}
             </p>
           </div>
           
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-600">Subtotal:</span>
-              <span>${getSubtotal().toFixed(2)}</span>
+              <span>${subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Service Fee:</span>
-              <span>${getServiceFee().toFixed(2)}</span>
             </div>
             <div className="flex justify-between font-bold text-lg border-t pt-2">
               <span>Total:</span>
-              <span className="text-green-600">${getTotal().toFixed(2)}</span>
+              <span className="text-green-600">${total.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -206,16 +210,7 @@ export default function OrderQRCode({ tableNumber, onClose }: OrderQRCodeProps) 
           >
             Close
           </button>
-          <button
-            onClick={() => {
-              // Copy QR data to clipboard
-              navigator.clipboard.writeText(qrData)
-              alert('Order data copied to clipboard!')
-            }}
-            className="flex-1 bg-primary hover:bg-primary/70 text-white font-medium py-3 px-4 rounded-lg transition-colors"
-          >
-            Copy Order Data
-          </button>
+          
         </div>
       </div>
     </div>
