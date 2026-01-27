@@ -4,27 +4,43 @@ import { RestaurantData } from "@/types"
 
 interface PageParams {
   params: Promise<{
-    restaurantId: string
+    slug: string
     tableNumber: string
   }>
 }
 
+
+
 export default async function Page({ params }: PageParams) {
-  const { restaurantId, tableNumber } = await params
+  const { slug, tableNumber } = await params
 
+  
+
+  
   try {
-    const [restaurantRes, categoriesRes] = await Promise.all([
-      // Fetch restaurant
-      supabase
-        .from('restaurants')
-        .select('id, name, slug')
-        .eq('id', restaurantId)
-        .single(),
+    // Backward-compat route: [restaurantId] may be an id or a slug.
+    // Try by id first, then fall back to slug.
+    const byId = await supabase
+      .from('restaurants')
+      .select('id, name, slug, logo_url, google_map_url, instagram_url')
+      .eq('slug', slug)
+      .single()
 
-      // Fetch categories with items
-      supabase
-        .from('categories')
-        .select(`
+    const restaurantRes =
+      byId.data && !byId.error
+        ? byId
+        : await supabase
+            .from('restaurants')
+            .select('id, name, slug, logo_url, google_map_url, instagram_url')
+            .eq('slug', slug)
+            .single()
+
+    if (restaurantRes.error) throw restaurantRes.error
+    if (!restaurantRes.data) throw new Error('Restaurant not found')
+
+    const categoriesRes = await supabase
+      .from('categories')
+      .select(`
           id,
           name,
           name_ar,
@@ -37,11 +53,13 @@ export default async function Page({ params }: PageParams) {
             name_ar,
             name_fr,
             description,
+            description_ar,
             base_price,
             image_url,
             category_id,
             preparation_time,
             is_available,
+            restaurant_id,
             allergens,
             item_variants(
               id,
@@ -64,30 +82,28 @@ export default async function Page({ params }: PageParams) {
             )
           )
         `)
-        .eq('restaurant_id', restaurantId)
-        .eq('is_active', true)
-        .eq('menu_items.is_active', true)
-        .eq('menu_items.is_available', true)
-        .eq('menu_items.menu_item_modifiers.modifiers.is_active', true)
-        .order('name')
-        .order('name', { referencedTable: 'menu_items' })
-    ])
+      .eq('restaurant_id', restaurantRes.data.id)
+      .eq('is_active', true)
+      .eq('menu_items.is_active', true)
+      .eq('menu_items.is_available', true)
+      .eq('menu_items.menu_item_modifiers.modifiers.is_active', true)
+      .order('name')
+      .order('name', { referencedTable: 'menu_items' })
 
-    if (restaurantRes.error) throw restaurantRes.error
     if (categoriesRes.error) throw categoriesRes.error
 
-    console.log(categoriesRes)
 
-    const restaurantData  = {
+    const restaurantData = {
       restaurant: restaurantRes.data,
       categories: categoriesRes.data || []
-    }
+    } as RestaurantData
+
 
     return (
       <MenuPageClient
         initialData={restaurantData}
         tableNumber={tableNumber}
-        restaurantId={restaurantId}
+        restaurantSlug={restaurantRes.data.slug}
       />
     )
   } catch (error) {

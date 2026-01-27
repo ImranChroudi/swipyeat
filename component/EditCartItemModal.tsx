@@ -1,15 +1,19 @@
 'use client'
 
+/* eslint-disable @next/next/no-img-element */
+
 import { useMemo, useRef, useState } from 'react'
-import Image from 'next/image'
 import { Modifier, ItemVariant, MenuItem, CartItem } from '@/types'
 import { useMenuItemDetails } from '@/hooks/useMenuItemDetails'
 import { useCart } from '@/context/CartContext'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock } from 'lucide-react'
+import type { Lang } from '@/lib/i18n'
+import { pickDescription, pickName, t } from '@/lib/i18n'
 
 interface EditCartItemModalProps {
   cartItem: CartItem
   menuItem: MenuItem
+  lang?: Lang
   isOpen: boolean
   onClose: () => void
 }
@@ -17,9 +21,15 @@ interface EditCartItemModalProps {
 export default function EditCartItemModal({
   cartItem,
   menuItem,
+  lang = 'fr',
   isOpen,
   onClose,
 }: EditCartItemModalProps) {
+  const displayItemName = pickName(lang, menuItem)
+  const displayDescription = pickDescription(lang, {
+    description: menuItem.description,
+    description_ar: menuItem.description_ar,
+  })
   const { updateItem } = useCart()
   const { variants, modifiers, loading } = useMenuItemDetails(menuItem.id)
 
@@ -35,6 +45,7 @@ export default function EditCartItemModal({
   )
   const [showSelectedExtras, setShowSelectedExtras] = useState(true)
   const [variantError, setVariantError] = useState(false)
+  const [isImageOpen, setIsImageOpen] = useState(false)
   const [specialInstructions, setSpecialInstructions] = useState(
     cartItem.specialInstructions || ''
   )
@@ -111,14 +122,21 @@ export default function EditCartItemModal({
 
     const selectedModsFromDb = modifiers
       .filter((m) => m.price > 0 && selectedModifierIds.has(m.id))
-      .map((m) => ({ modifierId: m.id, modifierName: m.name, price: m.price }))
+      .map((m) => ({
+        modifierId: m.id,
+        modifierName: pickName(lang, { name: m.name, name_ar: m.name_ar, name_fr: m.name_fr }),
+        price: m.price,
+      }))
     const selectedModsFromCart = (cartItem.selectedModifiers || []).filter(
       (m) => selectedModifierIds.has(m.modifierId) && !selectedModsFromDb.some((x) => x.modifierId === m.modifierId)
     )
 
     const removedModsFromDb = modifiers
       .filter((m) => m.price === 0 && removedModifierIds.has(m.id))
-      .map((m) => ({ modifierId: m.id, modifierName: m.name }))
+      .map((m) => ({
+        modifierId: m.id,
+        modifierName: pickName(lang, { name: m.name, name_ar: m.name_ar, name_fr: m.name_fr }),
+      }))
     const removedModsFromCart = (cartItem.removedModifiers || []).filter(
       (m) =>
         removedModifierIds.has(m.modifierId) &&
@@ -130,7 +148,11 @@ export default function EditCartItemModal({
       selectedVariant: selectedVariant
         ? {
             id: selectedVariant.id,
+            name: pickName(lang, {
             name: selectedVariant.name,
+              name_ar: selectedVariant.name_ar,
+              name_fr: selectedVariant.name_fr,
+            }),
             priceAdjustment: selectedVariant.price_adjustment,
           }
         : undefined,
@@ -149,6 +171,7 @@ export default function EditCartItemModal({
 
   return (
     <div
+      dir={lang === 'ar' ? 'rtl' : 'ltr'}
       className="fixed inset-0 bg-white bg-opacity-50 z-1111 min-h-screen pb-[100px] overflow-y-auto"
       onClick={onClose}
     >
@@ -157,17 +180,29 @@ export default function EditCartItemModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Item Image - Full Screen Top */}
-        <div className="fixed top-0 h-[45vh] w-full">
+        <div className="fixed top-0 h-[50vh] w-full">
           {menuItem.image_url ? (
-            <Image
+            <img
               src={menuItem.image_url}
               alt={menuItem.name}
-              fill
-              className="object-cover"
+              className="object-cover w-full h-full cursor-zoom-in"
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsImageOpen(true)
+              }}
             />
           ) : (
             <div className="bg-linear-to-br  from-gray-200 to-gray-300 h-full flex items-center justify-center">
-              <span className="text-gray-500">No image</span>
+              <span className="text-gray-500">{t(lang, 'no_image')}</span>
+            </div>
+          )}
+
+          {typeof menuItem.preparation_time === 'number' && menuItem.preparation_time > 0 && (
+            <div
+              className={`absolute top-5 ${lang === 'ar' ? 'left-5' : 'right-5'} z-10 inline-flex items-center gap-2 rounded-full bg-white/90 px-3 py-2 text-sm font-bold text-gray-900 shadow-sm backdrop-blur`}
+            >
+              <span>{menuItem.preparation_time}{t(lang, 'min_short')}</span>
+              <Clock className="h-4 w-4 text-gray-700" />
             </div>
           )}
 
@@ -177,10 +212,43 @@ export default function EditCartItemModal({
               onClick={onClose}
               className="bg-gray-800 bg-opacity-70 rounded-full w-10 h-10 flex items-center justify-center hover:bg-opacity-90 transition-all"
             >
+              {lang === 'ar' ? (
+                <ChevronRight className="w-6 h-6 text-white" />
+              ) : (
               <ChevronLeft className="w-6 h-6 text-white" />
+              )}
             </button>
           </div>
         </div>
+
+        {/* Full-screen image viewer */}
+        {isImageOpen && menuItem.image_url ? (
+          <div
+            className="fixed inset-0 z-2000 bg-black/80 p-4"
+            onClick={() => setIsImageOpen(false)}
+            role="dialog"
+            aria-modal="true"
+          >
+            <button
+              type="button"
+              onClick={() => setIsImageOpen(false)}
+              className={`absolute top-4 ${lang === 'ar' ? 'left-4' : 'right-4'} h-11 w-11 rounded-full bg-white/15 text-white text-2xl leading-none flex items-center justify-center hover:bg-white/20`}
+              aria-label={t(lang, 'close')}
+            >
+              ✕
+            </button>
+            <div
+              className="mx-auto h-[82vh] w-full max-w-4xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={menuItem.image_url}
+                alt={displayItemName}
+                className="h-full w-full object-contain rounded-2xl"
+              />
+            </div>
+          </div>
+        ) : null}
 
         {/* White Card Overlay */}
         <div className="relative mt-[40vh] bg-white rounded-t-3xl min-h-[60vh]">
@@ -189,12 +257,12 @@ export default function EditCartItemModal({
             <div className="mb-6">
               {/* Badge */}
               <span className="inline-block bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded mb-3">
-                EDIT ITEM
+                {t(lang, 'edit_item_badge')}
               </span>
 
               {/* Title and Price */}
               <div className="flex justify-between items-start mb-3">
-                <h2 className="text-2xl font-bold flex-1">{menuItem.name}</h2>
+                <h2 className="text-2xl font-bold flex-1">{displayItemName}</h2>
                 <span className="text-primary font-bold text-2xl ml-4">
                   ${itemTotal.toFixed(2)}
                 </span>
@@ -202,31 +270,53 @@ export default function EditCartItemModal({
 
               {/* Description */}
               <div className="mb-4">
-                <h3 className="font-bold text-text-primary mb-2">Description</h3>
+                <h3 className="font-bold text-text-primary mb-2">{t(lang, 'description')}</h3>
                 <p className="text-text-secondary text-md leading-relaxed">
-                  {menuItem.description}
+                  {displayDescription}
                 </p>
               </div>
+
+              {/* Allergens */}
+              {menuItem.allergens?.length ? (
+                <div className="mb-4">
+                  <h3 className="font-bold text-text-primary mb-2">{t(lang, 'allergens')}</h3>
+                  <div className="flex gap-2 overflow-x-auto flex-nowrap pr-1">
+                    {menuItem.allergens.map((a) => (
+                      <span
+                        key={a}
+                        className="shrink-0 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600"
+                      >
+                        {a}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {/* VARIANTS SECTION - Cooking Preference */}
             {variants.length > 0 && (
               <div className="mb-6" ref={variantsRef}>
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold">Cooking Preference</h3>
+                  <h3 className="text-lg font-bold">{t(lang, 'cooking_preference')}</h3>
                   <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded">
-                    REQUIRED
+                    {t(lang, 'required')}
                   </span>
                 </div>
                 {variantError && (
                   <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
-                    Please choose your variant
+                    {t(lang, 'choose_variant')}
                   </div>
                 )}
                 <div className="flex gap-3 overflow-x-auto flex-nowrap pb-1">
                   {variants.map((variant) => {
                     const isSelected = selectedVariant?.id === variant.id
                     const variantPrice = menuItem.base_price + (variant.price_adjustment || 0)
+                    const variantName = pickName(lang, {
+                      name: variant.name,
+                      name_ar: variant.name_ar,
+                      name_fr: variant.name_fr,
+                    })
 
                     return (
                       <button
@@ -243,7 +333,7 @@ export default function EditCartItemModal({
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className={`text-sm font-extrabold ${isSelected ? 'text-green-700' : 'text-text-primary'}`}>
-                              {variant.name}
+                              {variantName}
                             </div>
                             <div className={`text-sm font-semibold ${isSelected ? 'text-green-600' : 'text-gray-700'}`}>
                               {variantPrice.toFixed(0)}dh
@@ -270,18 +360,18 @@ export default function EditCartItemModal({
             {/* MODIFIERS SECTION - Add Extras */}
             {loading ? (
               <div className="mb-6">
-                <h3 className="text-lg font-bold mb-4">Add Extras</h3>
+                <h3 className="text-lg font-bold mb-4">{t(lang, 'add_extras')}</h3>
                 <div className="flex items-center justify-center py-8">
                   <div className="flex flex-col items-center gap-3">
                     <div className="h-9 w-9 rounded-full border-4 border-gray-200 border-t-primary animate-spin" />
-                    <div className="text-sm font-semibold text-gray-600">Please wait…</div>
-                    <div className="text-xs text-gray-500">Loading options…</div>
+                    <div className="text-sm font-semibold text-gray-600">{t(lang, 'please_wait')}</div>
+                    <div className="text-xs text-gray-500">{t(lang, 'loading_options')}</div>
                   </div>
                 </div>
               </div>
             ) : modifiers.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-lg font-bold mb-4">Add Extras</h3>
+                <h3 className="text-lg font-bold mb-4">{t(lang, 'add_extras')}</h3>
                 {(() => {
                   const withMods = modifiers.filter((m) => m.price > 0 && selectedModifierIds.has(m.id))
                   const withoutMods = modifiers.filter((m) => m.price === 0 && removedModifierIds.has(m.id))
@@ -295,7 +385,7 @@ export default function EditCartItemModal({
                         onClick={() => setShowSelectedExtras(true)}
                         className="mb-3 inline-flex items-center gap-2 rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-800"
                       >
-                        Show selected extras ({count})
+                        {t(lang, 'show_selected_extras', { count })}
                       </button>
                     )
                   }
@@ -304,14 +394,14 @@ export default function EditCartItemModal({
                     <div className="mb-3">
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-sm font-semibold text-text-primary">
-                          Selected modifiers
+                          {t(lang, 'selected_modifiers')}
                         </div>
                         <button
                           type="button"
                           onClick={() => setShowSelectedExtras(false)}
                           className="text-gray-500 hover:text-gray-800 font-semibold"
-                          aria-label="Hide selected extras"
-                          title="Hide"
+                          aria-label={t(lang, 'hide_selected_extras')}
+                          title={t(lang, 'hide')}
                         >
                           ✕
                         </button>
@@ -322,13 +412,19 @@ export default function EditCartItemModal({
                             key={modifier.id}
                             className="inline-flex items-center gap-2 rounded-full bg-gray-100 text-gray-800 px-3 py-1 text-xs font-semibold border border-gray-200"
                           >
-                            <span className="max-w-[220px] truncate">{modifier.name}</span>
+                            <span className="max-w-[220px] truncate">
+                              {pickName(lang, {
+                                name: modifier.name,
+                                name_ar: modifier.name_ar,
+                                name_fr: modifier.name_fr,
+                              })}
+                            </span>
                             <button
                               type="button"
                               onClick={() => setModifierChoice(modifier, 'without')}
                               className="shrink-0 text-gray-500 hover:text-gray-800"
-                              aria-label={`Set without ${modifier.name}`}
-                              title="Without"
+                              aria-label={t(lang, 'set_without', { item: pickName(lang, { name: modifier.name, name_ar: modifier.name_ar, name_fr: modifier.name_fr }) })}
+                              title={t(lang, 'without')}
                             >
                               ✕
                             </button>
@@ -339,13 +435,20 @@ export default function EditCartItemModal({
                             key={modifier.id}
                             className="inline-flex items-center gap-2 rounded-full bg-red-50 text-red-800 px-3 py-1 text-xs font-semibold border border-red-200"
                           >
-                            <span className="max-w-[220px] truncate">No {modifier.name}</span>
+                            <span className="max-w-[220px] truncate">
+                              {t(lang, 'no_prefix')}{' '}
+                              {pickName(lang, {
+                                name: modifier.name,
+                                name_ar: modifier.name_ar,
+                                name_fr: modifier.name_fr,
+                              })}
+                            </span>
                             <button
                               type="button"
                               onClick={() => setModifierChoice(modifier, 'with')}
                               className="shrink-0 text-red-600 hover:text-red-800"
-                              aria-label={`Set with ${modifier.name}`}
-                              title="With"
+                              aria-label={t(lang, 'set_with', { item: pickName(lang, { name: modifier.name, name_ar: modifier.name_ar, name_fr: modifier.name_fr }) })}
+                              title={t(lang, 'with')}
                             >
                               ✕
                             </button>
@@ -357,7 +460,7 @@ export default function EditCartItemModal({
                 })()}
                 {modifiers.some((m) => (m.price ?? 0) > 0) && (
                   <div className="mb-2 text-xs font-bold text-gray-600">
-                    Paid extras
+                    {t(lang, 'paid_extras')}
                   </div>
                 )}
                 <div className="space-y-3">
@@ -370,6 +473,11 @@ export default function EditCartItemModal({
                         : selectedModifierIds.has(modifier.id)
                           ? 'with'
                           : 'without'
+                    const modifierName = pickName(lang, {
+                      name: modifier.name,
+                      name_ar: modifier.name_ar,
+                      name_fr: modifier.name_fr,
+                    })
 
                     return (
                       <div
@@ -385,7 +493,7 @@ export default function EditCartItemModal({
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between gap-3">
                             <div className="font-semibold text-text-primary leading-snug">
-                              {modifier.name}
+                              {modifierName}
                             </div>
                             
                             {modifier.price > 0 && (
@@ -394,9 +502,9 @@ export default function EditCartItemModal({
                               </span>
                             )}
                           </div>
-                          {modifier.name_ar && (
+                          {(lang === 'ar' ? modifier.name_ar : modifier.name_fr) && (
                             <div className="text-xs text-gray-500 mt-1 text-right">
-                              {modifier.name_ar}
+                              {(lang === 'ar' ? modifier.name_ar : modifier.name_fr) as string}
                             </div>
                           )}
                           
@@ -404,7 +512,7 @@ export default function EditCartItemModal({
                         <div
                           className="shrink-0 inline-flex items-center rounded-full bg-gray-100 p-1 border border-gray-200"
                           role="group"
-                          aria-label={`${modifier.name} with/without`}
+                          aria-label={`${modifierName} ${t(lang, 'with')}/${t(lang, 'without')}`}
                         >
                           <button
                             type="button"
@@ -416,7 +524,7 @@ export default function EditCartItemModal({
                                 : 'text-gray-600 hover:text-gray-900'
                             }`}
                           >
-                            With
+                            {t(lang, 'with')}
                           </button>
                           <button
                             type="button"
@@ -428,7 +536,7 @@ export default function EditCartItemModal({
                                 : 'text-gray-600 hover:text-gray-900'
                             }`}
                           >
-                            Without
+                            {t(lang, 'without')}
                           </button>
                         </div>
                       </div>
@@ -440,46 +548,34 @@ export default function EditCartItemModal({
 
             {/* SPECIAL INSTRUCTIONS */}
             <div className="mb-6">
-              <h3 className="text-lg font-bold mb-4">Special Instructions</h3>
+              <h3 className="text-lg font-bold mb-4">{t(lang, 'special_instructions')}</h3>
               <textarea
                 value={specialInstructions}
                 onChange={(e) => setSpecialInstructions(e.target.value)}
-                placeholder="Add a note (e.g., no salt, extra napkins...)"
+                placeholder={t(lang, 'special_instructions_placeholder')}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
                 rows={3}
               />
             </div>
           </div>
 
-
-          <div className="fixed bottom-0 bg-white border-t border-gray-200  px-4 w-full py-4">
-            <div className="flex flex-col gap-3 md:flex-row items-center justify-between ">
-              <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-2 max-w-max md:w-auto border border-gray-200">
-                <button 
-                className=" inline-flex items-center justify-center text-xl font-bold bg-white hover:bg-gray-50 active:bg-gray-100 rounded-lg px-4 py-1 border border-gray-200 shadow-sm shadow-primary/60"
-                 aria-label="Decrease quantity">
-                −
-                </button>
-                <span className="font-bold text-lg w-8 text-center">1</span>
-                <button className=" inline-flex items-center justify-center text-xl font-bold bg-white hover:bg-gray-50 active:bg-gray-100 rounded-lg px-4 py-1 border border-gray-200/60 shadow-sm shadow-primary/60" aria-label="Increase quantity">+</button></div><button className="flex-1 bg-primary w-full hover:bg-primary/90 text-white font-semibold py-2 px-6 rounded-md transition-colors shadow-sm shadow-primary/10 text-lg ml-4">Add more $55.00</button></div></div>
-
-          {/* Fixed Bottom Bar */}
-          <div className="fixed w-full max-w-full bottom-0 bg-white border-gray-200  border-t shadow-lg px-6 py-4">
-            <div className="flex flex-col gap-2 w-full items-center justify-between">
+          {/* Fixed Bottom Bar (match MenuItemModal) */}
+          <div className="fixed bottom-0 bg-white border-t border-gray-200 px-4 w-full py-4">
+            <div className="flex gap-3 md:flex-row items-center justify-between">
               {/* Quantity Selector */}
-              <div className="flex items-center  gap-2 bg-gray-100 rounded-lg p-2 w-full sm:w-auto border border-gray-200/60">
+              <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className=" inline-flex flex-1 items-center justify-center text-xl font-bold bg-white hover:bg-gray-50 active:bg-gray-100 rounded-lg px-4 py-1 border border-gray-200 shadow-sm shadow-primary/60"
-                  aria-label="Decrease quantity"
+                  className="w-9 h-9 rounded-lg bg-white shadow-sm flex items-center justify-center text-gray-600 hover:bg-gray-50"
+                  aria-label={t(lang, 'decrease_quantity')}
                 >
                   −
                 </button>
                 <span className="font-bold text-lg w-8 text-center">{quantity}</span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
-                  className=" inline-flex flex-1 items-center justify-center text-xl font-bold bg-white hover:bg-gray-50 active:bg-gray-100 rounded-lg px-4 py-1 border border-gray-200 shadow-sm shadow-primary/60"
-                  aria-label="Increase quantity"
+                  className="w-9 h-9 rounded-lg bg-white shadow-sm flex items-center justify-center text-gray-600 hover:bg-gray-50"
+                  aria-label={t(lang, 'increase_quantity')}
                 >
                   +
                 </button>
@@ -488,9 +584,9 @@ export default function EditCartItemModal({
               {/* Save Changes Button */}
               <button
                 onClick={handleSaveChanges}
-                className="flex-1 w-full bg-primary hover:bg-primary/70 text-white font-bold py-3 px-6 rounded-lg transition-colors text-lg"
+                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
               >
-                Save Changes ${itemTotal.toFixed(2)}
+                {t(lang, 'save_changes')} ${itemTotal.toFixed(2)}
               </button>
             </div>
           </div>

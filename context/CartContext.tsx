@@ -25,11 +25,14 @@ type AddToCartDraft = Partial<
 > & {
   menuItemId: string
   menuItemName: string
+  menuItemName_ar?: string | null
+  menuItemName_fr?: string | null
   imageUrl?: string | null
   quantity?: number
   // Backward-compat: some callers were using camelCase
   base_price?: number
   basePrice?: number
+  restaurantId?: string
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
@@ -77,6 +80,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return {
         menuItemId: input.id,
         menuItemName: input.name,
+        menuItemName_ar: input.name_ar,
+        menuItemName_fr: input.name_fr,
         imageUrl: input.image_url,
         quantity,
         base_price,
@@ -84,6 +89,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         selectedModifiers,
         removedModifiers: [],
         specialInstructions: undefined,
+        restaurantId: input.restaurant_id,
         totalPrice: calculateLineTotal({
           base_price,
           selectedVariant: undefined,
@@ -102,8 +108,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const specialInstructions = input.specialInstructions || undefined
 
     return {
+      restaurantId: input.restaurantId,
       menuItemId: input.menuItemId,
       menuItemName: input.menuItemName,
+      menuItemName_ar: input.menuItemName_ar,
+      menuItemName_fr: input.menuItemName_fr,
       imageUrl: input.imageUrl,
       quantity,
       base_price,

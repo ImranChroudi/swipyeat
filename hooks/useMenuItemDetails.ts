@@ -58,7 +58,7 @@ export function useMenuItemDetails(menuItemId: string) {
         }
       } catch (err) {
         console.error('Error fetching item details:', err)
-        setError(err.message)
+        setError(err instanceof Error ? err.message : 'An unknown error occurred')
       } finally {
         setLoading(false)
       }

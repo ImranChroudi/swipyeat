@@ -4,20 +4,26 @@ import { useState } from 'react'
 import { Modifier, MenuItem } from '@/types'
 import { useMenuItemDetails } from '@/hooks/useMenuItemDetails'
 import { useCart } from '@/context/CartContext'
+import type { Lang } from '@/lib/i18n'
+import { pickName } from '@/lib/i18n'
+import { t } from '@/lib/i18n'
 
 interface QuickAddModalProps {
   item: MenuItem
   isOpen: boolean
   onClose: () => void
+  lang?: Lang
 }
 
 export default function QuickAddModal({
   item,
   isOpen,
   onClose,
+  lang = 'fr',
 }: QuickAddModalProps) {
   const { addItem } = useCart()
   const { modifiers, menuItemModifiers, loading } = useMenuItemDetails(item.id)
+  const displayItemName = pickName(lang, item)
 
   const [addModifierIds, setAddModifierIds] = useState<Set<string>>(() => new Set())
   const [removeModifierIds, setRemoveModifierIds] = useState<Set<string>>(() => new Set())
@@ -75,16 +81,29 @@ export default function QuickAddModal({
     addItem({
       menuItemId: item.id,
       menuItemName: item.name,
+      menuItemName_ar: item.name_ar,
+      menuItemName_fr: item.name_fr,
       imageUrl: item.image_url,
       quantity: 1,
       base_price: item.base_price,
       selectedVariant: undefined,
       selectedModifiers: modifiers
         .filter((m) => m.price > 0 && addModifierIds.has(m.id))
-        .map((m) => ({ modifierId: m.id, modifierName: m.name, price: m.price })),
+        .map((m) => ({
+          modifierId: m.id,
+          modifierName: m.name,
+          modifierName_ar: m.name_ar,
+          modifierName_fr: m.name_fr,
+          price: m.price,
+        })),
       removedModifiers: modifiers
         .filter((m) => m.price === 0 && removeModifierIds.has(m.id))
-        .map((m) => ({ modifierId: m.id, modifierName: m.name })),
+        .map((m) => ({
+          modifierId: m.id,
+          modifierName: m.name,
+          modifierName_ar: m.name_ar,
+          modifierName_fr: m.name_fr,
+        })),
       specialInstructions: undefined,
     })
     onClose()
@@ -95,6 +114,7 @@ export default function QuickAddModal({
 
   return (
     <div
+      dir={lang === 'ar' ? 'rtl' : 'ltr'}
       className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
@@ -104,7 +124,7 @@ export default function QuickAddModal({
       >
         {/* Header */}
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-          <h2 className="text-xl font-bold">{item.name}</h2>
+          <h2 className="text-xl font-bold">{displayItemName}</h2>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 text-2xl"
@@ -120,17 +140,17 @@ export default function QuickAddModal({
               <div className="flex items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
                   <div className="h-9 w-9 rounded-full border-4 border-gray-200 border-t-primary animate-spin" />
-                  <div className="text-sm font-semibold text-gray-600">Please wait…</div>
-                  <div className="text-xs text-gray-500">Loading options…</div>
+                  <div className="text-sm font-semibold text-gray-600">{t(lang, 'please_wait')}</div>
+                  <div className="text-xs text-gray-500">{t(lang, 'loading_options')}</div>
                 </div>
               </div>
             </div>
           ) : modifiers.length > 0 ? (
             <div className="mb-6">
-              <h3 className="text-lg font-bold mb-4">Add Extras</h3>
+              <h3 className="text-lg font-bold mb-4">{t(lang, 'add_extras')}</h3>
               {modifiers.some((m) => (m.price ?? 0) > 0) && (
                 <div className="mb-3 text-xs font-bold text-gray-600">
-                  Paid extras
+                  {t(lang, 'paid_extras')}
                 </div>
               )}
               <div className="space-y-3">
@@ -148,6 +168,11 @@ export default function QuickAddModal({
                       : addModifierIds.has(modifier.id)
                         ? 'with'
                         : 'without'
+                  const modifierName = pickName(lang, {
+                    name: modifier.name,
+                    name_ar: modifier.name_ar,
+                    name_fr: modifier.name_fr,
+                  })
 
                   return (
                     <div
@@ -163,7 +188,7 @@ export default function QuickAddModal({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
                           <div className="font-semibold text-text-primary leading-snug">
-                            {modifier.name}
+                            {modifierName}
                           </div>
                           {modifier.price > 0 && (
                             <span className="shrink-0 rounded-full bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 text-xs font-bold">
@@ -171,22 +196,22 @@ export default function QuickAddModal({
                             </span>
                           )}
                         </div>
-                        {modifier.name_ar && (
+                        {(lang === 'ar' ? modifier.name_ar : modifier.name_fr) && (
                           <div className="text-xs text-gray-500 mt-1 text-right">
-                            {modifier.name_ar}
+                            {(lang === 'ar' ? modifier.name_ar : modifier.name_fr) as string}
                           </div>
                         )}
                        
                         {isRequired && (
                           <div className="mt-2 text-xs font-semibold text-red-600">
-                            Required
+                            {t(lang, 'required')}
                           </div>
                         )}
                       </div>
                       <div
                         className="shrink-0 inline-flex items-center rounded-full bg-gray-100 p-1 border border-gray-200"
                         role="group"
-                        aria-label={`${modifier.name} with/without`}
+                    aria-label={`${modifierName} ${t(lang, 'with')}/${t(lang, 'without')}`}
                       >
                         <button
                           type="button"
@@ -198,7 +223,7 @@ export default function QuickAddModal({
                               : 'text-gray-600 hover:text-gray-900'
                           }`}
                         >
-                          With
+                          {t(lang, 'with')}
                         </button>
                         <button
                           type="button"
@@ -210,7 +235,7 @@ export default function QuickAddModal({
                               : 'text-gray-600 hover:text-gray-900'
                           }`}
                         >
-                          Without
+                          {t(lang, 'without')}
                         </button>
                       </div>
                     </div>
@@ -221,7 +246,7 @@ export default function QuickAddModal({
           ) : (
             <div className="mb-6">
               <p className="text-gray-500 text-center py-4">
-                No modifiers available for this item
+                {t(lang, 'no_modifiers')}
               </p>
             </div>
           )}
@@ -229,17 +254,17 @@ export default function QuickAddModal({
           {/* Price Summary */}
           <div className="border-t pt-4 mb-6">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-gray-700">Base Price:</span>
+              <span className="text-gray-700">{t(lang, 'base_price')}:</span>
               <span>${item.base_price.toFixed(2)}</span>
             </div>
             {modifiersPrice > 0 && (
               <div className="flex justify-between items-center mb-2">
-                <span className="text-gray-700">Extras:</span>
+                <span className="text-gray-700">{t(lang, 'extras')}:</span>
                 <span>+${modifiersPrice.toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between items-center border-t pt-2 mt-2">
-              <span className="font-bold text-lg">Total:</span>
+              <span className="font-bold text-lg">{t(lang, 'total')}:</span>
               <span className="text-2xl font-bold text-green-600">
                 ${itemTotal.toFixed(2)}
               </span>
@@ -251,7 +276,7 @@ export default function QuickAddModal({
             onClick={handleAddToCart}
             className="w-full bg-primary hover:bg-primary/70 text-white font-bold py-4 px-6 rounded-lg transition-colors text-lg"
           >
-            Add to Cart
+            {t(lang, 'add_to_cart')}
           </button>
         </div>
       </div>

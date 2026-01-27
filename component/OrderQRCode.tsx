@@ -1,216 +1,182 @@
 'use client'
-
 import { QRCodeSVG } from 'qrcode.react'
 import { useOrder } from '@/context/OrderContext'
 import { supabase } from '@/lib/supabase'
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { Lang } from '@/lib/i18n'
+import { t } from '@/lib/i18n'
 
 interface OrderQRCodeProps {
   tableNumber: string
-  onClose: (opts?: { accepted?: boolean }) => void
+  restaurantId?: string
+  lang?: Lang
+  onClose: (opts?: { accepted?: boolean; orderNumber?: string }) => void
 }
 
-function generateOrderId() {
-  try {
-    if (typeof crypto !== 'undefined') {
-      if (typeof crypto.randomUUID === 'function') return crypto.randomUUID()
-      if (typeof crypto.getRandomValues === 'function') {
-        const bytes = new Uint8Array(16)
-        crypto.getRandomValues(bytes)
-        // RFC4122-ish v4 UUID formatting
-        bytes[6] = (bytes[6] & 0x0f) | 0x40
-        bytes[8] = (bytes[8] & 0x3f) | 0x80
-        const hex = [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('')
-        return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(
-          16,
-          20
-        )}-${hex.slice(20)}`
-      }
-    }
-  } catch {
-    // ignore and fall back
-  }
-  return `order-${Date.now()}-${Math.random().toString(16).slice(2)}`
+function generateQrOrderNumber() {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  const rand = Math.floor(Math.random() * 1_000_000)
+    .toString()
+    .padStart(6, '0')
+  return `ORD-${y}${m}${day}-${rand}`
 }
 
-function toBase64Url(input: string) {
-  const bytes = new TextEncoder().encode(input)
-  let binary = ''
-  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
-  const b64 = btoa(binary)
-  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
-}
-
-export default function OrderQRCode({ tableNumber, onClose }: OrderQRCodeProps) {
+export default function OrderQRCode({
+  tableNumber,
+  restaurantId,
+  onClose,
+  lang = 'fr',
+}: OrderQRCodeProps) {
   const { currentOrder } = useOrder()
-
-  // Keep a stable ID even if the component re-renders.
-  const fallbackOrderId = useMemo(() => generateOrderId(), [])
-  const orderId = currentOrder?.id ?? fallbackOrderId
+  const qrOrderNumber = useMemo(() => generateQrOrderNumber(), [])
   const hasAcceptedRef = useRef(false)
+  const [isListening, setIsListening] = useState(false)
 
+  const notify = (message: string) => {
+    try {
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        if (Notification.permission === 'granted') {
+          new Notification('SwipyEat', { body: message })
+          return
+        }
+      }
+    } catch {
+      // ignore and fall back
+    }
+    // Fallback (always works)
+    alert(message)
+  }
+
+  // Realtime listener - listens for new orders with matching order_number
   useEffect(() => {
-    // Listen for the waiter/device inserting the order into Supabase.
-    // We match the incoming row against the same `orderId` embedded in the QR.
+    console.log('🔍 Listening for order:', qrOrderNumber)
+
     const channel = supabase
-      .channel(`orders-insert:${orderId}`)
+      .channel(`order-${qrOrderNumber}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'orders' },
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders',
+          filter: `order_number=eq.${qrOrderNumber}`,
+        },
         (payload) => {
+          console.log('📦 Order received:', payload)
+
           if (hasAcceptedRef.current) return
 
-          const maybe = payload as unknown
-          const row =
-            typeof maybe === 'object' &&
-            maybe !== null &&
-            'new' in maybe &&
-            typeof (maybe as Record<string, unknown>).new === 'object' &&
-            (maybe as Record<string, unknown>).new !== null
-              ? ((maybe as Record<string, unknown>).new as Record<string, unknown>)
-              : {}
-          const incomingId =
-            row.order_id ??
-            row.orderId ??
-            row.client_order_id ??
-            row.clientOrderId ??
-            row.customer_order_id ??
-            row.customerOrderId ??
-            row.id
+          const newRow = payload?.new
+          if (!newRow) return
 
-          if (typeof incomingId === 'string' && incomingId === orderId) {
+          const incomingOrderNumber = newRow.order_number || newRow.orderNumber || newRow.number
+
+          if (incomingOrderNumber === qrOrderNumber) {
+            console.log('✅ Order matched!')
             hasAcceptedRef.current = true
-            alert('Order received! Redirecting to track your order…')
-            onClose({ accepted: true })
+            setIsListening(false)
+            notify(t(lang, 'order_received_redirect'))
+            onClose({ accepted: true, orderNumber: qrOrderNumber })
           }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Listening for order')
+          setIsListening(true)
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Channel error - enable Realtime on "orders" table in Supabase')
+          setIsListening(false)
+        }
+      })
 
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [orderId, onClose])
+  }, [qrOrderNumber, lang, onClose])
 
   const orderItems = currentOrder?.items ?? []
-  const subtotal = currentOrder?.subtotal ?? 0
-  const taxes = 0
-  const total = currentOrder?.total ?? subtotal
+  const total = currentOrder?.total ?? 0
 
-  // Create order data object
+  const createdAtMs = currentOrder?.createdAt
+    ? new Date(currentOrder.createdAt).getTime()
+    : 0
+  const expSeconds = Math.floor(createdAtMs / 1000) + 2 * 60 * 60
+
   const orderData = {
-    order_request_id: currentOrder?.orderNumber,
-    table_id : tableNumber,
-    items: orderItems.map((item) => ({
-      plat_id: item.menuItemId,
-      menuItemName: item.menuItemName,
-      quantity: item.quantity,
-      options : {
-          add : item.selectedModifiers.map((modifier) => 
-               ({
-                key : modifier.modifierName,
-                price : modifier.price
-              })
-          ) ,
-          remove: (item.removedModifiers || []).map((modifier) => ({
-            key: modifier.modifierName,
-          })),
-          
-      },
-      selectedVariant: item.selectedVariant,
-      selectedModifiers: item.selectedModifiers,
-      removedModifiers: item.removedModifiers,
-      specialInstructions: item.specialInstructions,
-      totalPrice: item.totalPrice,
-    })),
-    subtotal,
-    taxes,
-    total,
-    requested_at: new Date().toISOString(),
+    v: '1',
+    r: restaurantId,
+    t: String(tableNumber),
+    o: qrOrderNumber,
+    i: orderItems.map((it) => {
+      const x = it.selectedModifiers?.length
+        ? it.selectedModifiers.map((m) => ({ i: m.modifierId, q: 1 }))
+        : undefined
+      return {
+        m: it.menuItemId,
+        ...(it.selectedVariant?.id ? { v: it.selectedVariant.id } : {}),
+        ...(x ? { x } : {}),
+        q: it.quantity,
+        ...(it.specialInstructions?.trim() ? { n: it.specialInstructions.trim() } : {}),
+      }
+    }),
+    e: expSeconds,
   }
 
-  // Convert order data to JSON string for QR code
-  const qrData = JSON.stringify(orderData)
-  // QR should open a website, but still carry the full order payload.
-  // NOTE: very large orders can produce very large URLs; if that becomes an issue, we can switch to storing in Supabase and only encode an id.
-  const qrUrl = `https://www.google.com/#order=${toBase64Url(qrData)}`
+  const isRtl = lang === 'ar'
 
   return (
-    <div className="fixed inset-0 bg-white bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full p-6">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Order Confirmation</h2>
-          <button
-            onClick={() => onClose()}
-            className="text-gray-500 hover:text-gray-700 text-2xl"
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Wait Message */}
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded">
-          <div className="flex items-center">
-            <div className="shrink-0">
-              <span className="text-2xl">⏳</span>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-yellow-800">
-                Please wait for the waiter to scan your QR code
-              </p>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div 
+        dir={isRtl ? 'rtl' : 'ltr'}
+        className="relative bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden"
+      >
+        {/* Gradient header */}
+        <div className="bg-gradient-to-r from-primary to-orange-500 px-6 py-8 text-center">
+          {/* Animated waiting indicator */}
+          <div className="relative w-20 h-20 mx-auto mb-4">
+            <div className={`absolute inset-0 rounded-full bg-white/20 ${isListening ? 'animate-ping' : ''}`} />
+            <div className="absolute inset-2 rounded-full bg-white flex items-center justify-center">
+              <span className="text-4xl">{isListening ? '⏳' : '✅'}</span>
             </div>
           </div>
-        </div>
-
-        {/* QR Code */}
-        <div className="flex flex-col items-center mb-6">
-          <div className="bg-white p-4 rounded-lg border-2 border-gray-200 mb-4">
-            <QRCodeSVG
-              value={qrUrl}
-              size={256}
-              level="H"
-              includeMargin={true}
-            />
-          </div>
-          <p className="text-sm text-gray-600 text-center">
-            Scan opens google.com and includes your order data
+          <p className="text-white font-semibold text-lg">
+            {isListening ? t(lang, 'scan_waiter') : t(lang, 'order_received_redirect')}
           </p>
         </div>
 
-        {/* Order Summary */}
-        <div className="border-t pt-4">
-          <div className="mb-4">
-            <p className="text-lg font-bold mb-2">Table: {tableNumber}</p>
-            <p className="text-xs text-gray-500 break-all">Order ID: {orderId}</p>
-            <p className="text-sm text-gray-600">
-              {orderItems.length} item{orderItems.length !== 1 ? 's' : ''} • Total: ${total.toFixed(2)}
-            </p>
+        {/* QR Code */}
+        <div className="px-6 py-8 flex flex-col items-center">
+          <div className="bg-white p-4 rounded-2xl shadow-lg border border-gray-100">
+            <QRCodeSVG value={JSON.stringify(orderData)} size={180} level="H" />
           </div>
           
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Subtotal:</span>
-              <span>${subtotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-            </div>
-            <div className="flex justify-between font-bold text-lg border-t pt-2">
-              <span>Total:</span>
-              <span className="text-green-600">${total.toFixed(2)}</span>
-            </div>
+          {/* Order number badge */}
+          <div className="mt-4 px-4 py-2 bg-gray-100 rounded-full">
+            <span className="text-xs font-mono text-gray-600">{qrOrderNumber}</span>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="mt-6 flex gap-3">
+        {/* Total */}
+        <div className="px-6 pb-6">
+          <div className={`flex items-center justify-between py-4 border-t border-dashed border-gray-200 ${isRtl ? 'flex-row-reverse' : ''}`}>
+            <span className="text-gray-600 font-medium">{t(lang, 'total')}</span>
+            <span className="text-2xl font-extrabold bg-gradient-to-r from-primary to-orange-500 bg-clip-text text-transparent">
+              {total.toFixed(0)} DH
+            </span>
+          </div>
+
+          {/* Back button */}
           <button
             onClick={() => onClose()}
-            className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-4 rounded-lg transition-colors"
+            className="w-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 text-gray-700 font-semibold py-4 px-6 rounded-2xl transition-colors flex items-center justify-center gap-2"
           >
-            Close
+            <span>{isRtl ? '→' : '←'}</span>
+            <span>{t(lang, 'go_back')}</span>
           </button>
-          
         </div>
       </div>
     </div>

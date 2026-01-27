@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, ReactNode } from 'react'
 import { CartItem } from '@/types'
 
-export type OrderStatus = 'preparation' | 'ready' | 'served'
+export type OrderStatus = 'preparation' | 'ready' | 'paid' | 'served' | 'cancelled'
 
 export interface Order {
   id: string
