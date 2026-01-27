@@ -519,12 +519,8 @@ export default function MenuItemModal({
                     </div>
                   )
                 })()}
-                {modifiers.some((m) => (m.price ?? 0) > 0) && (
-                  <div className="mb-2 text-xs font-bold text-gray-600">
-                    {t(lang, 'paid_extras')}
-                  </div>
-                )}
-                <div className="space-y-3">
+                {/* Modifiers Grid */}
+                <div className="grid grid-cols-1 gap-3">
                   {modifiers.map((modifier) => {
                     const choice =
                       modifier.price === 0
@@ -537,74 +533,74 @@ export default function MenuItemModal({
                     const modifierName =
                       (lang === 'ar' ? modifier.name_ar : lang === 'fr' ? modifier.name_fr : modifier.name) ||
                       modifier.name
+                    const secondaryName = lang === 'ar' 
+                      ? modifier.name 
+                      : lang === 'fr' 
+                        ? modifier.name 
+                        : modifier.name_fr
 
                     return (
                       <div
                         key={modifier.id}
-                        className={`group flex flex-col items-start gap-3 rounded-xl border p-4 cursor-pointer transition-all ${
-                          choice === 'without'
-                            ? 'border-red-300 bg-red-50/60 shadow-sm'
-                            : choice === 'with'
-                              ? 'border-primary bg-primary/5 shadow-sm'
-                              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        className={`relative overflow-hidden rounded-2xl border-2 transition-all duration-200 ${
+                          choice === 'with' && modifier.price > 0
+                            ? 'border-green-400 bg-gradient-to-r from-green-50 to-emerald-50 shadow-md shadow-green-100'
+                            : choice === 'without' && modifier.price === 0
+                              ? 'border-red-300 bg-gradient-to-r from-red-50 to-rose-50 shadow-md shadow-red-100'
+                              : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
                         }`}
                       >
-                        <div className="w-full flex-1">
-                          <div className="flex  items-start w-full justify-between gap-3">
-                            <div className="font-semibold text-text-primary leading-snug">
-                              {modifierName}
+                        {/* Content */}
+                        <div className="p-4">
+                          <div className="flex items-center justify-between gap-4">
+                            {/* Left: Name & Price */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-bold text-gray-800 truncate">
+                                  {modifierName}
+                                </span>
+                                {modifier.price > 0 && (
+                                  <span className="shrink-0 inline-flex items-center rounded-lg bg-green-100 text-green-700 px-2.5 py-1 text-xs font-bold">
+                                    +{modifier.price.toFixed(0)} DH
+                                  </span>
+                                )}
+                              </div>
+                              {secondaryName && secondaryName !== modifierName && (
+                                <p className="text-xs text-gray-400 truncate">{secondaryName}</p>
+                              )}
                             </div>
-                            {(lang === 'ar' ? modifier.name_ar : modifier.name_fr) && (
-                            <div className="text-xs text-gray-500 mt-1 text-right">
-                              {(lang === 'ar' ? modifier.name_ar : modifier.name_fr) as string}
+
+                            {/* Right: Toggle Buttons */}
+                            <div
+                              className="shrink-0 inline-flex items-center rounded-full bg-gray-100 p-1"
+                              role="group"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => setModifierChoice(modifier, 'with')}
+                                aria-pressed={choice === 'with'}
+                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${
+                                  choice === 'with'
+                                    ? 'bg-green-500 text-white shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                              >
+                                {t(lang, 'with')}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setModifierChoice(modifier, 'without')}
+                                aria-pressed={choice === 'without'}
+                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 ${
+                                  choice === 'without'
+                                    ? 'bg-red-500 text-white shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                              >
+                                {t(lang, 'without')}
+                              </button>
                             </div>
-                          )}
                           </div>
-                          
-                          
-                        </div>
-
-
-                        <div className='w-full flex items-center justify-between gap-3'>
-                        <div>
-                            {modifier.price > 0 && (
-                              <span className="shrink-0 rounded-full bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 text-xs font-bold">
-                                {`+$${modifier.price.toFixed(2)}`}
-                              </span>
-                            )}
-                           </div>
-
-                           <div
-                          className="shrink-0 inline-flex items-center rounded-full bg-gray-100 p-1 border border-gray-200"
-                          role="group"
-                          aria-label={`${modifierName} ${t(lang, 'with')}/${t(lang, 'without')}`}
-                        >
-                           
-                         <button
-                            type="button"
-                            onClick={() => setModifierChoice(modifier, 'with')}
-                            aria-pressed={choice === 'with'}
-                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                              choice === 'with'
-                                ? 'bg-primary text-white shadow-sm'
-                                : 'text-gray-600 hover:text-gray-900'
-                            }`}
-                          >
-                            {t(lang, 'with')}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setModifierChoice(modifier, 'without')}
-                            aria-pressed={choice === 'without'}
-                            className={`px-3 py-1 rounded-full text-xs font-bold transition-all ${
-                              choice === 'without'
-                                ? 'bg-red-600 text-white shadow-sm'
-                                : 'text-gray-600 hover:text-gray-900'
-                            }`}
-                          >
-                            {t(lang, 'without')}
-                          </button>
-                        </div>
                         </div>
                        
                       </div>
@@ -628,7 +624,7 @@ export default function MenuItemModal({
           </div>
 
           {/* Fixed Bottom Bar */}
-          <div className="fixed bottom-0 bg-white border-t  border-gray-200  px-4 w-full py-4">
+          <div className="fixed bottom-0 bg-white border-t z-111 border-gray-200  px-4 w-full py-4">
             <div className="flex  gap-3 md:flex-row items-center justify-between ">
               {/* Quantity Selector */}
               <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
@@ -656,48 +652,66 @@ export default function MenuItemModal({
                 onClick={handleAddToCart}
                 className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
               >
-                {matchingCartItems.length > 0 ? t(lang, 'add_more') : t(lang, 'add_to_cart')} ${itemTotal.toFixed(2)}
+                {matchingCartItems.length > 0 ? t(lang, 'add_more') : t(lang, 'add_to_cart')} Dh{itemTotal.toFixed(2)}
               </button>
             </div>
           </div>
 
           {/* Related Items Section */}
           {relatedItems.length > 0 && onSelectItem && (
-            <div className="border-t border-gray-100 pt-4 mt-2">
-              <h3 className="font-bold text-gray-800 mb-3 px-1">
-                {t(lang, 'more_from_category')}
-              </h3>
-              <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
-                {relatedItems.slice(0, 6).map((relatedItem) => (
+            <div className="mt-4 pt-4 px-4 border-t border-dashed border-gray-200">
+              {/* Section Header */}
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center shadow-sm">
+                  <span className="text-white text-sm">✨</span>
+                </div>
+                <h3 className="font-bold text-gray-800">
+                  {t(lang, 'more_from_category')}
+                </h3>
+              </div>
+              
+              {/* Items Carousel */}
+              <div className="flex gap-3  overflow-x-auto pb-3 -mx-4 px-4 snap-x snap-mandatory scrollbar-hide">
+                {relatedItems.slice(0, 8).map((relatedItem) => (
                   <button
                     key={relatedItem.id}
                     onClick={() => onSelectItem(relatedItem)}
-                    className="flex-shrink-0 w-28 group"
+                    className="flex-shrink-0 w-32 snap-start group"
                   >
-                    {/* Image */}
-                    <div className="relative w-28 h-28 rounded-xl overflow-hidden bg-gray-100 mb-2 shadow-sm group-hover:shadow-md transition-shadow">
-                      {relatedItem.image_url ? (
-                        <img
-                          src={relatedItem.image_url}
-                          alt={pickName(lang, relatedItem)}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-300">
-                          <span className="text-3xl">🍽️</span>
+                    {/* Card */}
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group-hover:shadow-lg group-hover:border-orange-200 transition-all duration-300 group-active:scale-95">
+                      {/* Image */}
+                      <div className="relative h-24 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
+                        {relatedItem.image_url ? (
+                          <img
+                            src={relatedItem.image_url}
+                            alt={pickName(lang, relatedItem)}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <span className="text-4xl opacity-30">🍽️</span>
+                          </div>
+                        )}
+                        {/* Gradient overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                      
+                      {/* Content */}
+                      <div className="p-2.5">
+                        {/* Name */}
+                        <p className="text-xs font-semibold text-gray-800 line-clamp-2 mb-1.5 group-hover:text-orange-600 transition-colors leading-tight min-h-[2rem]">
+                          {pickName(lang, relatedItem)}
+                        </p>
+                        {/* Price */}
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-bold text-orange-500">
+                            {relatedItem.base_price}
+                          </span>
+                          <span className="text-[10px] font-medium text-gray-400">DH</span>
                         </div>
-                      )}
-                      {/* Price badge */}
-                      <div className="absolute bottom-1 right-1 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-sm">
-                        <span className="text-xs font-bold text-orange-600">
-                          {relatedItem.base_price} DH
-                        </span>
                       </div>
                     </div>
-                    {/* Name */}
-                    <p className="text-xs font-medium text-gray-700 line-clamp-2 text-center group-hover:text-orange-600 transition-colors">
-                      {pickName(lang, relatedItem)}
-                    </p>
                   </button>
                 ))}
               </div>

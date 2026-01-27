@@ -116,7 +116,7 @@ export default function MenuPageClient({
       className={`${anyModalOpen ? 'h-screen overflow-hidden' : 'min-h-screen'} relative bg-gray-50 shadow-lg`}
     >
       {/* Header with restaurant info */}
-      <div className="bg-white shadow sticky top-0 z-10">
+      <div className="bg-white shadow   z-1111">
         <div className="max-w-7xl mx-auto px-4 pt-4 pb-2">
           <div className="flex justify-between items-center">
             <div className="flex-1 min-w-0">
@@ -179,9 +179,10 @@ export default function MenuPageClient({
         </div>
       </div>
 
-      <div className="max-w-7xl pb-[100px] relative mx-auto  bg-white z-10 py-2">
+      <div className="max-w-7xl min-h-screen pb-[100px] relative mx-auto  bg-white z-10 py-2">
         {/* Search Filter */}
 
+        {categories.length > 0 && (
         <div className="sticky top-0 w-full  py-2 bg-white z-1111">
         <div className="mb-2 px-4">
           <div className="relative">
@@ -207,7 +208,6 @@ export default function MenuPageClient({
         </div>
 
         {/* Category Filter */}
-        {categories.length > 0 && (
           <div className=" z-10 px-4">
             <div className="flex gap-2 px-2 overflow-x-auto py-2 ">
             <button    
@@ -232,8 +232,8 @@ export default function MenuPageClient({
              
             </div>
           </div>
-        )}
         </div>
+        )}
 
         {/* Menu Items */}
         {selectedCategoryId === null ? (
@@ -268,16 +268,25 @@ export default function MenuPageClient({
               ))}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-500">
+            <div className="flex flex-col items-center justify-center py-16 px-6">
+              <div className="relative mb-6">
+                <div className="text-7xl animate-bounce">🍽️</div>
+                <div className="absolute -top-2 -right-2 text-2xl animate-pulse">✨</div>
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-2 text-center">
                 {searchQuery
                   ? t(lang, 'no_items_found', { query: searchQuery })
                   : t(lang, 'no_items_restaurant')}
-              </p>
+              </h3>
+              {!searchQuery && (
+                <p className="text-gray-500 text-center max-w-xs">
+                  {t(lang, 'no_items_restaurant_subtitle')}
+                </p>
+              )}
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="mt-2 text-green-600 hover:text-green-700 underline"
+                  className="mt-4 px-6 py-2 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors"
                 >
                   {t(lang, 'clear_search')}
                 </button>
@@ -298,16 +307,24 @@ export default function MenuPageClient({
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <p className="text-gray-500">
+          <div className="flex flex-col items-center justify-center py-16 px-6">
+            <div className="relative mb-6">
+              <div className="text-6xl">{searchQuery ? '🔍' : '🍴'}</div>
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2 text-center">
               {searchQuery
                 ? t(lang, 'no_items_found', { query: searchQuery })
                 : t(lang, 'no_items_category')}
-            </p>
+            </h3>
+            {!searchQuery && (
+              <p className="text-gray-500 text-center max-w-xs">
+                {t(lang, 'no_items_category_subtitle')}
+              </p>
+            )}
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="mt-2 text-green-600 hover:text-green-700 underline"
+                className="mt-4 px-6 py-2 bg-primary text-white rounded-full font-medium hover:bg-primary/90 transition-colors"
               >
                 {t(lang, 'clear_search')}
               </button>
@@ -317,7 +334,7 @@ export default function MenuPageClient({
       </div>
 
       {/* Floating Cart Button */}
-      {!anyModalOpen && (
+      {!anyModalOpen && categories.length > 0 && (
      <div className="fixed bottom-5 flex justify-center mx-auto z-40  w-full">
          <button
           onClick={() => setIsCartOpen(true)}
@@ -326,7 +343,7 @@ export default function MenuPageClient({
         >
           {items?.length > 0 && (
             <span
-              className="absolute -top-4 -right-0 h-8 w-8 rounded-full bg-white text-primary text-base font-bold flex items-center justify-center shadow border-2 border-primary"
+              className="absolute -top-4 right-0 h-8 w-8 rounded-full bg-white text-primary text-base font-bold flex items-center justify-center shadow border-2 border-primary"
             >
               {items.length}
             </span>

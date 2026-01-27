@@ -315,7 +315,7 @@ export default function Cart({ onClose, tableNumber, restaurantSlug, restaurantI
                           {getLocalizedName(cartLine, lang)}
                       </h3>
                         <span className="text-primary font-bold text-base whitespace-nowrap">
-                          {cartLine.totalPrice?.toFixed(0)} DH
+                          {cartLine.totalPrice} DH
                       </span>
                     </div>
 
@@ -365,7 +365,7 @@ export default function Cart({ onClose, tableNumber, restaurantSlug, restaurantI
                         className="h-10 px-4 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-medium text-sm inline-flex items-center gap-2 transition-colors disabled:opacity-50"
                         >
                             <ReceiptText className="w-4 h-4" />
-                        <span className="hidden sm:inline">{t(lang, 'edit')}</span>
+                            <span>{t(lang, 'edit')}</span>
                         </button>
                         <button
                             onClick={() => setPendingRemove(cartLine)}

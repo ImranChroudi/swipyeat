@@ -66,9 +66,11 @@ const fr = {
   save_changes: 'Enregistrer',
   undo: 'Annuler',
   remove_item: "Supprimer l'article",
-  no_items_found: 'Aucun élément trouvé pour « {query} »',
-  no_items_restaurant: 'Aucun élément dans ce restaurant',
-  no_items_category: 'Aucun élément dans cette catégorie',
+  no_items_found: 'Oups ! Rien trouvé pour « {query} »',
+  no_items_restaurant: 'Le menu arrive bientôt ! 🍽️',
+  no_items_restaurant_subtitle: 'Notre chef prépare de délicieuses surprises pour vous.',
+  no_items_category: 'Cette catégorie est vide pour le moment',
+  no_items_category_subtitle: 'Explorez d\'autres catégories délicieuses !',
   clear_search: 'Effacer la recherche',
   open_cart: 'Ouvrir le panier',
   add: 'Ajouter',
@@ -105,6 +107,13 @@ const fr = {
   notif_allow: 'Autoriser les notifications',
   notif_later: 'Plus tard',
   notif_helper: 'Vous pouvez désactiver les notifications à tout moment dans les paramètres du navigateur.',
+  // Error pages
+  error_restaurant_not_found: 'Restaurant introuvable',
+  error_restaurant_not_found_subtitle: 'Oups ! Ce restaurant n\'existe pas ou a été supprimé.',
+  error_generic: 'Une erreur est survenue',
+  error_generic_subtitle: 'Quelque chose s\'est mal passé. Veuillez réessayer.',
+  error_try_again: 'Réessayer',
+  error_go_home: 'Retour à l\'accueil',
 } as const
 
 export default fr

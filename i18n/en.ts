@@ -66,9 +66,11 @@ const en = {
   save_changes: 'Save',
   undo: 'Undo',
   remove_item: 'Remove item',
-  no_items_found: 'No items found matching "{query}"',
-  no_items_restaurant: 'No items in this restaurant',
-  no_items_category: 'No items in this category',
+  no_items_found: 'Oops! Nothing found for "{query}"',
+  no_items_restaurant: 'Menu coming soon! 🍽️',
+  no_items_restaurant_subtitle: 'Our chef is preparing delicious surprises for you.',
+  no_items_category: 'This category is empty for now',
+  no_items_category_subtitle: 'Explore other delicious categories!',
   clear_search: 'Clear search',
   open_cart: 'Open cart',
   add: 'Add',
@@ -105,6 +107,13 @@ const en = {
   notif_allow: 'Allow Notifications',
   notif_later: 'Not Now',
   notif_helper: 'You can disable notifications anytime in your browser settings.',
+  // Error pages
+  error_restaurant_not_found: 'Restaurant not found',
+  error_restaurant_not_found_subtitle: 'Oops! This restaurant doesn\'t exist or has been removed.',
+  error_generic: 'Something went wrong',
+  error_generic_subtitle: 'An error occurred. Please try again.',
+  error_try_again: 'Try again',
+  error_go_home: 'Go home',
 } as const
 
 export default en

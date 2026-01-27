@@ -20,6 +20,7 @@ const languages: Array<{ code: Lang; name: string; nativeName: string; flag: str
 export default function LanguageSelector({ value, onChange, lang }: LanguageSelectorProps) {
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const isRtl = lang === 'ar'
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -56,10 +57,13 @@ export default function LanguageSelector({ value, onChange, lang }: LanguageSele
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-[fadeIn_0.2s_ease-out]">
+        <div 
+          className={`absolute top-full mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 ${isRtl ? 'left-0' : 'right-0'}`}
+          style={{ zIndex: 99999 }}
+        >
           {/* Header */}
           <div className="px-4 py-3 bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-100">
-            <div className="flex items-center gap-2">
+            <div className={`flex items-center gap-2 ${isRtl ? 'flex-row-reverse' : ''}`}>
               <Globe className="w-5 h-5 text-orange-500" />
               <span className="font-semibold text-gray-700">{t(lang, 'choose_language')}</span>
             </div>
@@ -104,18 +108,6 @@ export default function LanguageSelector({ value, onChange, lang }: LanguageSele
         </div>
       )}
 
-      <style jsx>{`
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(-8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
     </div>
   )
 }

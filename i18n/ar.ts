@@ -66,9 +66,11 @@ const ar = {
   save_changes: 'حفظ التغييرات',
   undo: 'تراجع',
   remove_item: 'إزالة العنصر',
-  no_items_found: 'لم يتم العثور على نتائج لـ "{query}"',
-  no_items_restaurant: 'لا توجد عناصر في هذا المطعم',
-  no_items_category: 'لا توجد عناصر في هذه الفئة',
+  no_items_found: 'عذراً! لم نجد نتائج لـ "{query}"',
+  no_items_restaurant: 'القائمة قادمة قريباً! 🍽️',
+  no_items_restaurant_subtitle: 'الشيف يحضر مفاجآت لذيذة لك.',
+  no_items_category: 'هذه الفئة فارغة حالياً',
+  no_items_category_subtitle: 'استكشف فئات لذيذة أخرى!',
   clear_search: 'مسح البحث',
   open_cart: 'فتح السلة',
   add: 'إضافة',
@@ -105,6 +107,13 @@ const ar = {
   notif_allow: 'السماح بالإشعارات',
   notif_later: 'ليس الآن',
   notif_helper: 'يمكنك إيقاف الإشعارات في أي وقت من إعدادات المتصفح.',
+  // Error pages
+  error_restaurant_not_found: 'المطعم غير موجود',
+  error_restaurant_not_found_subtitle: 'عذراً! هذا المطعم غير موجود أو تم حذفه.',
+  error_generic: 'حدث خطأ ما',
+  error_generic_subtitle: 'حدث خطأ. يرجى المحاولة مرة أخرى.',
+  error_try_again: 'حاول مجدداً',
+  error_go_home: 'العودة للرئيسية',
 } as const
 
 export default ar

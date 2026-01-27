@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase"
 import MenuPageClient from "./MenuPageClient"
 import { RestaurantData } from "@/types"
+import RestaurantError from "@/component/RestaurantError"
 
 interface PageParams {
   params: Promise<{
@@ -109,6 +110,13 @@ export default async function Page({ params }: PageParams) {
   } catch (error) {
     console.error('Error:', error)
     const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
-    return <div className="p-4 text-red-600">Error: {errorMessage}</div>
+    const isNotFound = errorMessage.includes('not found') || errorMessage.includes('No rows')
+    
+    return (
+      <RestaurantError 
+        type={isNotFound ? 'not_found' : 'generic'} 
+        message={errorMessage} 
+      />
+    )
   }
 }

@@ -264,7 +264,7 @@ export default function EditCartItemModal({
               <div className="flex justify-between items-start mb-3">
                 <h2 className="text-2xl font-bold flex-1">{displayItemName}</h2>
                 <span className="text-primary font-bold text-2xl ml-4">
-                  ${itemTotal.toFixed(2)}
+                  {itemTotal.toFixed(2)}Dh
                 </span>
               </div>
 
@@ -498,7 +498,7 @@ export default function EditCartItemModal({
                             
                             {modifier.price > 0 && (
                               <span className="shrink-0 rounded-full bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 text-xs font-bold">
-                                {`+$${modifier.price.toFixed(2)}`}
+                                {`+${modifier.price.toFixed(2)}Dh`}
                               </span>
                             )}
                           </div>
@@ -586,7 +586,7 @@ export default function EditCartItemModal({
                 onClick={handleSaveChanges}
                 className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-2"
               >
-                {t(lang, 'save_changes')} ${itemTotal.toFixed(2)}
+                {t(lang, 'save_changes')} {itemTotal}Dh
               </button>
             </div>
           </div>
