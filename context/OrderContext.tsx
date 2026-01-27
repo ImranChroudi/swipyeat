@@ -31,9 +31,16 @@ export function OrderProvider({ children }: { children: ReactNode }) {
 
   const generateOrderNumber = () => {
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    const numbers = Math.floor(Math.random() * 1000)
-    const letter = letters[Math.floor(Math.random() * letters.length)]
-    return `${letter}${numbers.toString().padStart(3, '0')}`
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    // Generate 2 random letters
+    const letter1 = letters[Math.floor(Math.random() * letters.length)]
+    const letter2 = letters[Math.floor(Math.random() * letters.length)]
+    // Generate 4-digit number
+    const numbers = Math.floor(Math.random() * 10000).toString().padStart(4, '0')
+    // Generate 4 random alphanumeric characters
+    const suffix = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+    // Format: XX-0000-XXXX (e.g., AB-1234-K7M2)
+    return `${letter1}${letter2}-${numbers}-${suffix}`
   }
 
   const createOrder = (

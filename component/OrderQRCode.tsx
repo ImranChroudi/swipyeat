@@ -19,10 +19,14 @@ function generateQrOrderNumber() {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
-  const rand = Math.floor(Math.random() * 1_000_000)
+  const h = String(d.getHours()).padStart(2, '0')
+  const min = String(d.getMinutes()).padStart(2, '0')
+  // Generate 8-digit random number for uniqueness
+  const rand = Math.floor(Math.random() * 100_000_000)
     .toString()
-    .padStart(6, '0')
-  return `ORD-${y}${m}${day}-${rand}`
+    .padStart(8, '0')
+  // Format: ORD-YYYYMMDD-HHMM-XXXXXXXX
+  return `ORD-${y}${m}${day}-${h}${min}-${rand}`
 }
 
 export default function OrderQRCode({
