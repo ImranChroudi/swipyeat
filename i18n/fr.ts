@@ -1,5 +1,7 @@
 const fr = {
   lang_label: 'Langue',
+  choose_language: 'Choisissez votre langue',
+  more_from_category: 'Plus de cette catégorie',
   search_placeholder: 'Rechercher des plats, articles ou catégories',
   all_categories: 'Tout',
   google_review: 'Google Review',

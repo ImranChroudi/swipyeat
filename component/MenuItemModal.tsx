@@ -18,6 +18,8 @@ interface MenuItemModalProps {
   lang: Lang
   isOpen: boolean
   onClose: () => void
+  relatedItems?: MenuItem[]
+  onSelectItem?: (item: MenuItem) => void
 }
 
 export default function MenuItemModal({
@@ -25,6 +27,8 @@ export default function MenuItemModal({
   lang,
   isOpen,
   onClose,
+  relatedItems = [],
+  onSelectItem,
 }: MenuItemModalProps) {
   const { addItem, items: cartItems } = useCart()
   const { variants, modifiers, loading } = useMenuItemDetails(item.id)
@@ -656,6 +660,49 @@ export default function MenuItemModal({
               </button>
             </div>
           </div>
+
+          {/* Related Items Section */}
+          {relatedItems.length > 0 && onSelectItem && (
+            <div className="border-t border-gray-100 pt-4 mt-2">
+              <h3 className="font-bold text-gray-800 mb-3 px-1">
+                {t(lang, 'more_from_category')}
+              </h3>
+              <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
+                {relatedItems.slice(0, 6).map((relatedItem) => (
+                  <button
+                    key={relatedItem.id}
+                    onClick={() => onSelectItem(relatedItem)}
+                    className="flex-shrink-0 w-28 group"
+                  >
+                    {/* Image */}
+                    <div className="relative w-28 h-28 rounded-xl overflow-hidden bg-gray-100 mb-2 shadow-sm group-hover:shadow-md transition-shadow">
+                      {relatedItem.image_url ? (
+                        <img
+                          src={relatedItem.image_url}
+                          alt={pickName(lang, relatedItem)}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                          <span className="text-3xl">🍽️</span>
+                        </div>
+                      )}
+                      {/* Price badge */}
+                      <div className="absolute bottom-1 right-1 bg-white/90 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-sm">
+                        <span className="text-xs font-bold text-orange-600">
+                          {relatedItem.base_price} DH
+                        </span>
+                      </div>
+                    </div>
+                    {/* Name */}
+                    <p className="text-xs font-medium text-gray-700 line-clamp-2 text-center group-hover:text-orange-600 transition-colors">
+                      {pickName(lang, relatedItem)}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

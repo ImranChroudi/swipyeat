@@ -1,5 +1,7 @@
 const ar = {
   lang_label: 'اللغة',
+  choose_language: 'اختر لغتك',
+  more_from_category: 'المزيد من هذه الفئة',
   search_placeholder: 'ابحث عن أطباق أو عناصر أو فئات',
   all_categories: 'الكل',
   google_review: 'تقييم Google',

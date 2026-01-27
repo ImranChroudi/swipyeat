@@ -1,5 +1,7 @@
 const en = {
   lang_label: 'Language',
+  choose_language: 'Choose your language',
+  more_from_category: 'More from this category',
   search_placeholder: 'Search dishes, items, or categories',
   all_categories: 'All',
   google_review: 'Google Review',

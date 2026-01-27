@@ -12,9 +12,9 @@ import Item from "./Item"
 import Category from "./Category"
 import { Search } from "lucide-react"
 import { ArrowRight, ShoppingBag } from "lucide-react"
-import { ChevronDown } from "lucide-react"
 import { Instagram } from "lucide-react"
 import { pickName, t, type Lang } from "@/lib/i18n"
+import LanguageSelector from "@/component/LanguageSelector"
 
 
 interface Props {
@@ -138,19 +138,11 @@ export default function MenuPageClient({
               
             </div>
             {/* Language selector (header) */}
-            <div className="relative">
-              <select
-                value={lang}
-                onChange={(e) => setLang(e.target.value as Lang)}
-                aria-label={t(lang, 'lang_label')}
-                className="appearance-none h-10 rounded-xl border-2 border-primary/40 bg-white pl-4 pr-10 text-sm font-bold text-primary shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-              >
-                <option value="fr">fr</option>
-                <option value="ar">ar</option>
-                <option value="en">en</option>
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
-            </div>
+            <LanguageSelector
+              value={lang}
+              onChange={setLang}
+              lang={lang}
+            />
           </div>
           <div className="mt-3 flex  items-center gap-2 overflow-x-auto pr-1">
                     {restaurant.google_map_url ? (
@@ -358,6 +350,12 @@ export default function MenuPageClient({
           lang={lang}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
+          relatedItems={
+            categories
+              .find((cat) => cat.id === selectedItem.category_id)
+              ?.menu_items.filter((i) => i.id !== selectedItem.id && i.is_available) || []
+          }
+          onSelectItem={(newItem) => setSelectedItem(newItem)}
         />
       )}
 
