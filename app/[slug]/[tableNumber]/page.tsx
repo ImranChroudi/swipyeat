@@ -19,22 +19,12 @@ export default async function Page({ params }: PageParams) {
 
   
   try {
-    // Backward-compat route: [restaurantId] may be an id or a slug.
-    // Try by id first, then fall back to slug.
-    const byId = await supabase
+    // Get restaurant by slug
+    const restaurantRes = await supabase
       .from('restaurants')
       .select('id, name, slug, logo_url, google_map_url, instagram_url')
       .eq('slug', slug)
       .single()
-
-    const restaurantRes =
-      byId.data && !byId.error
-        ? byId
-        : await supabase
-            .from('restaurants')
-            .select('id, name, slug, logo_url, google_map_url, instagram_url')
-            .eq('slug', slug)
-            .single()
 
     if (restaurantRes.error) throw restaurantRes.error
     if (!restaurantRes.data) throw new Error('Restaurant not found')
