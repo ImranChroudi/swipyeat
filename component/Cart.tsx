@@ -10,7 +10,7 @@ import OrderQRCode from './OrderQRCode'
 import EditCartItemModal from './EditCartItemModal'
 import { supabase } from '@/lib/supabase'
 import { MenuItem, CartItem } from '@/types'
-import { ReceiptText, Trash2 } from 'lucide-react'
+import { ArrowLeftIcon, ReceiptText, Trash2 } from 'lucide-react'
 import type { Lang } from '@/lib/i18n'
 import { t } from '@/lib/i18n'
 
@@ -249,7 +249,7 @@ export default function Cart({ onClose, tableNumber, restaurantSlug, restaurantI
                 onClick={onClose}
                 className="text-gray-600 hover:text-gray-800"
               >
-                ←
+                <ArrowLeftIcon className="w-4 h-4" />
               </button>
             )}
             <h1 className="text-2xl font-bold">{t(lang, 'cart_title')}</h1>

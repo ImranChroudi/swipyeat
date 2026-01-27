@@ -91,6 +91,12 @@ const ar = {
   status_cancelled: 'ملغي',
   status_cancelled_desc: 'تم إلغاء هذا الطلب.',
   order_update_notification: 'حالة طلبك: {status}',
+  // Thank You Message
+  thank_you_title: 'شكراً لك!',
+  thank_you_message: 'نتمنى أن تكون قد استمتعت بوجبتك. نراك قريباً!',
+  thank_you_rating: 'كيف كانت تجربتك؟',
+  thank_you_feedback: 'اترك تقييماً',
+  thank_you_done: 'تم',
   // Notification Permission Modal
   notif_title: 'تفعيل الإشعارات',
   notif_message: 'يرجى السماح بالإشعارات لمتابعة تحضير طلبك لحظة بلحظة والحصول على إشعار عند جاهزيته.',

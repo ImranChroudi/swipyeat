@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useOrder, OrderStatus } from '@/context/OrderContext'
 import { supabase } from '@/lib/supabase'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Star } from 'lucide-react'
 import type { Lang } from '@/lib/i18n'
 import { t } from '@/lib/i18n'
 
@@ -19,8 +19,9 @@ export default function TrackOrder({ tableNumber, restaurantSlug, onBack, lang =
   const router = useRouter()
   const searchParams = useSearchParams()
   const { currentOrder, updateOrderStatus } = useOrder()
-  const [activeTab, setActiveTab] = useState<'status' | 'menu' | 'history' | 'profile'>('status')
   const [liveStatus, setLiveStatus] = useState<OrderStatus | null>(null)
+  const [rating, setRating] = useState(0)
+  const [thankYouDismissed, setThankYouDismissed] = useState(false)
   const isRtl = lang === 'ar'
 
   // Get orderNumber from URL query params (used for realtime status tracking)
@@ -91,13 +92,6 @@ export default function TrackOrder({ tableNumber, restaurantSlug, onBack, lang =
     }
   }
 
-  const handleTabChange = (tab: 'status' | 'menu' | 'history' | 'profile') => {
-    setActiveTab(tab)
-    if (tab === 'menu' && restaurantSlug) {
-      router.push(`/restaurant/${restaurantSlug}/table/${tableNumber}`)
-    }
-  }
-
   // Main status steps (normal flow)
   const statusSteps: Array<{
     key: OrderStatus
@@ -153,7 +147,11 @@ export default function TrackOrder({ tableNumber, restaurantSlug, onBack, lang =
   const rawStatus = liveStatus || currentOrder?.status || 'preparation'
   const displayStatus = normalizeStatus(rawStatus)
   const isCancelled = displayStatus === 'cancelled'
+  const isPaid = displayStatus === 'paid'
   const currentStatusIndex = isCancelled ? -1 : getStatusIndex(displayStatus)
+
+  // Derive showThankYou from isPaid and dismissed state
+  const showThankYou = isPaid && !thankYouDismissed
 
   // Show tracking even if no context order, as long as we have orderNumber from URL
   if (!currentOrder && !orderNumber) {
@@ -295,6 +293,97 @@ export default function TrackOrder({ tableNumber, restaurantSlug, onBack, lang =
         )}
 
       </div>
+
+      {/* Thank You Modal */}
+      {showThankYou && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div
+            dir={isRtl ? 'rtl' : 'ltr'}
+            className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden animate-[slideUp_0.5s_ease-out]"
+          >
+            {/* Confetti background */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute -top-4 -left-4 w-24 h-24 bg-yellow-200 rounded-full opacity-50 blur-2xl" />
+              <div className="absolute -top-4 -right-4 w-32 h-32 bg-orange-200 rounded-full opacity-50 blur-2xl" />
+              <div className="absolute -bottom-8 left-1/2 w-40 h-40 bg-green-200 rounded-full opacity-40 blur-3xl" />
+            </div>
+
+            {/* Content */}
+            <div className="relative p-8 text-center">
+              {/* Celebration icon */}
+              <div className="mb-6">
+                <div className="relative inline-block">
+                  <div className="absolute inset-0 bg-gradient-to-br from-yellow-400 to-orange-400 rounded-full blur-lg opacity-50 animate-pulse" />
+                  <div className="relative w-24 h-24 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-xl">
+                    <span className="text-5xl animate-bounce">🎉</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Title */}
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                {t(lang, 'thank_you_title')}
+              </h2>
+
+              {/* Message */}
+              <p className="text-gray-500 mb-6 leading-relaxed">
+                {t(lang, 'thank_you_message')}
+              </p>
+
+              {/* Rating */}
+              <div className="mb-6">
+                <p className="text-sm text-gray-600 mb-3">{t(lang, 'thank_you_rating')}</p>
+                <div className="flex justify-center gap-2">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      onClick={() => setRating(star)}
+                      className={`transition-all duration-200 hover:scale-110 ${
+                        star <= rating ? 'text-yellow-400 scale-110' : 'text-gray-300'
+                      }`}
+                    >
+                      <Star
+                        className="w-10 h-10"
+                        fill={star <= rating ? 'currentColor' : 'none'}
+                        strokeWidth={1.5}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="space-y-3">
+                <button
+                  onClick={() => setThankYouDismissed(true)}
+                  className="w-full py-4 px-6 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold rounded-2xl shadow-lg shadow-orange-200/50 transition-all active:scale-[0.98]"
+                >
+                  {t(lang, 'thank_you_done')}
+                </button>
+              </div>
+
+              {/* Floating emojis */}
+              <div className="absolute top-4 left-6 text-2xl animate-bounce" style={{ animationDelay: '0.1s' }}>⭐</div>
+              <div className="absolute top-8 right-8 text-xl animate-bounce" style={{ animationDelay: '0.3s' }}>💫</div>
+              <div className="absolute bottom-20 left-4 text-lg animate-bounce" style={{ animationDelay: '0.5s' }}>✨</div>
+              <div className="absolute bottom-24 right-6 text-xl animate-bounce" style={{ animationDelay: '0.7s' }}>🌟</div>
+            </div>
+          </div>
+
+          <style jsx>{`
+            @keyframes slideUp {
+              from {
+                opacity: 0;
+                transform: translateY(40px) scale(0.95);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+              }
+            }
+          `}</style>
+        </div>
+      )}
     </div>
   )
 }

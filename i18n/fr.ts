@@ -91,6 +91,12 @@ const fr = {
   status_cancelled: 'Annulé',
   status_cancelled_desc: 'Cette commande a été annulée.',
   order_update_notification: 'Statut de votre commande : {status}',
+  // Thank You Message
+  thank_you_title: 'Merci !',
+  thank_you_message: 'Nous espérons que vous avez apprécié votre repas. À bientôt !',
+  thank_you_rating: 'Comment était votre expérience ?',
+  thank_you_feedback: 'Laisser un avis',
+  thank_you_done: 'Terminé',
   // Notification Permission Modal
   notif_title: 'Activer les notifications',
   notif_message: 'Veuillez autoriser les notifications pour suivre la préparation de votre commande en temps réel et être informé lorsqu\'elle est prête.',

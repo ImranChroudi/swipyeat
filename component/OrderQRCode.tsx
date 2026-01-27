@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Lang } from '@/lib/i18n'
 import { t } from '@/lib/i18n'
+import { useToast } from './Toast'
 
 interface OrderQRCodeProps {
   tableNumber: string
@@ -31,23 +32,25 @@ export default function OrderQRCode({
   lang = 'fr',
 }: OrderQRCodeProps) {
   const { currentOrder } = useOrder()
+  const { showToast } = useToast()
   const qrOrderNumber = useMemo(() => generateQrOrderNumber(), [])
   const hasAcceptedRef = useRef(false)
   const [isListening, setIsListening] = useState(false)
 
   const notify = (message: string) => {
+    // Show custom toast notification
+    showToast(message, 'success', 5000)
+    
+    // Also try browser notification if granted
     try {
       if (typeof window !== 'undefined' && 'Notification' in window) {
         if (Notification.permission === 'granted') {
           new Notification('SwipyEat', { body: message })
-          return
         }
       }
     } catch {
-      // ignore and fall back
+      // ignore
     }
-    // Fallback (always works)
-    alert(message)
   }
 
   // Realtime listener - listens for new orders with matching order_number
