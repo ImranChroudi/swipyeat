@@ -88,7 +88,7 @@ export default function TrackOrder({ tableNumber, restaurantSlug, onBack, lang =
     if (onBack) {
       onBack()
     } else if (restaurantSlug) {
-      router.push(`/restaurant/${restaurantSlug}/table/${tableNumber}`)
+      router.push(`/${restaurantSlug}/${tableNumber}`)
     }
   }
 
