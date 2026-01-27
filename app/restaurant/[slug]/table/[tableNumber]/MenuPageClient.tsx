@@ -4,8 +4,9 @@
 
 import MenuItemModal from "@/component/MenuItemModal"
 import Cart from "@/component/Cart"
+import NotificationPermissionModal, { useNotificationPermission } from "@/component/NotificationPermissionModal"
 import { RestaurantData, MenuItem } from "@/types"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useCart } from "@/context/CartContext"
 import Item from "./Item"
 import Category from "./Category"
@@ -36,7 +37,20 @@ export default function MenuPageClient({
   const [isOverlayOpen, setIsOverlayOpen] = useState(false)
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<RestaurantData['categories'][0]['menu_items'][0] | null>(null)
-              const [lang, setLang] = useState<Lang>('fr')
+  const [lang, setLang] = useState<Lang>('fr')
+
+  // Notification permission
+  const { permission, showModal: showNotifModal, requestPermission, closeModal: closeNotifModal, onPermissionGranted } = useNotificationPermission()
+
+  // Show notification prompt after 5 seconds if not yet decided
+  useEffect(() => {
+    if (permission === 'default') {
+      const timer = setTimeout(() => {
+        requestPermission()
+      }, 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [permission, requestPermission])
 
   const fallbackLogoUrl = 'https://dummyimage.com/80x80/ffffff/111827.png&text=R'
 
@@ -344,6 +358,15 @@ export default function MenuPageClient({
           lang={lang}
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
+        />
+      )}
+
+      {/* Notification Permission Modal */}
+      {showNotifModal && (
+        <NotificationPermissionModal
+          lang={lang}
+          onClose={closeNotifModal}
+          onAllow={onPermissionGranted}
         />
       )}
 

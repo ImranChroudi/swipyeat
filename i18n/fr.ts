@@ -91,6 +91,12 @@ const fr = {
   status_cancelled: 'Annulé',
   status_cancelled_desc: 'Cette commande a été annulée.',
   order_update_notification: 'Statut de votre commande : {status}',
+  // Notification Permission Modal
+  notif_title: 'Activer les notifications',
+  notif_message: 'Veuillez autoriser les notifications pour suivre la préparation de votre commande en temps réel et être informé lorsqu\'elle est prête.',
+  notif_allow: 'Autoriser les notifications',
+  notif_later: 'Plus tard',
+  notif_helper: 'Vous pouvez désactiver les notifications à tout moment dans les paramètres du navigateur.',
 } as const
 
 export default fr

@@ -91,6 +91,12 @@ const ar = {
   status_cancelled: 'ملغي',
   status_cancelled_desc: 'تم إلغاء هذا الطلب.',
   order_update_notification: 'حالة طلبك: {status}',
+  // Notification Permission Modal
+  notif_title: 'تفعيل الإشعارات',
+  notif_message: 'يرجى السماح بالإشعارات لمتابعة تحضير طلبك لحظة بلحظة والحصول على إشعار عند جاهزيته.',
+  notif_allow: 'السماح بالإشعارات',
+  notif_later: 'ليس الآن',
+  notif_helper: 'يمكنك إيقاف الإشعارات في أي وقت من إعدادات المتصفح.',
 } as const
 
 export default ar

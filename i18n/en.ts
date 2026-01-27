@@ -91,6 +91,12 @@ const en = {
   status_cancelled: 'Cancelled',
   status_cancelled_desc: 'This order has been cancelled.',
   order_update_notification: 'Your order status: {status}',
+  // Notification Permission Modal
+  notif_title: 'Enable Notifications',
+  notif_message: 'Please allow notifications to track your order preparation in real time and get notified when it\'s ready.',
+  notif_allow: 'Allow Notifications',
+  notif_later: 'Not Now',
+  notif_helper: 'You can disable notifications anytime in your browser settings.',
 } as const
 
 export default en
