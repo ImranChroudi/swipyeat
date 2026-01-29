@@ -100,6 +100,8 @@ const ar = {
   thank_you_message: 'نتمنى أن تكون قد استمتعت بوجبتك. نراك قريباً!',
   thank_you_rating: 'كيف كانت تجربتك؟',
   thank_you_feedback: 'اترك تقييماً',
+  thank_you_google_review: 'قيّمنا على خرائط جوجل',
+  thank_you_google_review_subtitle: 'رأيك يساعدنا على التحسين!',
   thank_you_done: 'تم',
   // Notification Permission Modal
   notif_title: 'تفعيل الإشعارات',

@@ -100,6 +100,8 @@ const en = {
   thank_you_message: 'We hope you enjoyed your meal. See you soon!',
   thank_you_rating: 'How was your experience?',
   thank_you_feedback: 'Leave a review',
+  thank_you_google_review: 'Rate us on Google Maps',
+  thank_you_google_review_subtitle: 'Your feedback helps us improve!',
   thank_you_done: 'Done',
   // Notification Permission Modal
   notif_title: 'Enable Notifications',

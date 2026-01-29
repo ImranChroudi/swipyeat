@@ -169,7 +169,7 @@ export default function Cart({ onClose, tableNumber, restaurantSlug, restaurantI
             if (opts?.accepted && opts?.orderNumber) {
             clearCart()
             if (restaurantSlug && tableNumber) {
-                const href = `/${restaurantSlug}/${tableNumber}/track-order?orderNumber=${encodeURIComponent(opts.orderNumber)}&restaurantId=${encodeURIComponent(items[0]?.restaurantId || '')}`
+                const href = `/${restaurantSlug}/${tableNumber}/track-order?orderNumber=${encodeURIComponent(opts.orderNumber)}&restaurantId=${encodeURIComponent(items[0]?.restaurantId || '')}&lang=${lang}`
                 router.push(href)
             } else if (onClose) {
               onClose()

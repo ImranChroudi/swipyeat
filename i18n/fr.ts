@@ -100,6 +100,8 @@ const fr = {
   thank_you_message: 'Nous espérons que vous avez apprécié votre repas. À bientôt !',
   thank_you_rating: 'Comment était votre expérience ?',
   thank_you_feedback: 'Laisser un avis',
+  thank_you_google_review: 'Notez-nous sur Google Maps',
+  thank_you_google_review_subtitle: 'Votre avis nous aide à nous améliorer !',
   thank_you_done: 'Terminé',
   // Notification Permission Modal
   notif_title: 'Activer les notifications',

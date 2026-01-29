@@ -68,23 +68,24 @@ const Item = ({
                     if ((e.target as HTMLElement).closest('button')) return
                     handleOpenModal(item)
                 }}
-                className={`group p-3 min-h-[136px] border border-gray-200 relative flex md:flex-col ${
+                className={`group p-3 min-h-[136px] border border-gray-100 relative flex md:flex-col ${
                   isRtl ? 'flex-row-reverse' : 'flex-row'
-                } gap-4 overflow-hidden rounded-2xl bg-white shadow-[0_6px_18px_rgba(17,24,39,0.08)] transition-all active:scale-[0.98]`}
+                } gap-4 overflow-hidden rounded-2xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_25px_rgba(0,0,0,0.08)] hover:border-orange-100 transition-all duration-300 active:scale-[0.98] cursor-pointer`}
                 >
                 {/* Image */}
-                <div className="relative h-[108px] w-[130px] shrink-0 overflow-hidden rounded-2xl bg-gray-100">
+                <div className="relative h-[108px] w-[130px] shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100">
                   {item.image_url ? (
                     <>
                       <img
                         src={item.image_url}
                         alt={displayName}
-                        className="object-cover w-full h-full"
+                        className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
                       />
-                      <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/10 via-transparent to-white/5" />
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/15 via-transparent to-white/10" />
                     </>
                   ) : (
-                    <div className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-gray-500">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-xs font-semibold text-gray-400">
+                      <span className="text-3xl mb-1">🍽️</span>
                       {t(lang, 'no_image')}
                     </div>
                   )}
@@ -142,7 +143,7 @@ const Item = ({
                   <div className="border-t border-gray-100 pt-2">
                    
                     <div className={`flex justify-between items-center gap-2 ${isRtl ? 'flex-row-reverse' : ''}`}>
-                      <span className="text-[15px] font-extrabold text-orange-500">
+                      <span className="text-[15px] font-extrabold bg-gradient-to-r from-orange-500 to-amber-500 bg-clip-text text-transparent">
                         {item.base_price} DH
                       </span>
                       {isAdded && primaryCartItem ? (
@@ -174,7 +175,7 @@ const Item = ({
                             addItem(item)
                             }
                           }}
-                          className="rounded-full bg-primary text-white shadow-sm shadow-primary/40 hover:shadow-md hover:bg-primary/90 active:scale-[0.99] px-4 py-2 font-extrabold text-sm transition-all"
+                          className="rounded-full bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md shadow-orange-200/50 hover:shadow-lg hover:shadow-orange-300/50 hover:scale-105 active:scale-[0.97] px-4 py-2 font-extrabold text-sm transition-all duration-200"
                         >
                           + {t(lang, 'add')}
                         </button>

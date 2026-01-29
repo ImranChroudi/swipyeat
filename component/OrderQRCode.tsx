@@ -85,7 +85,7 @@ export default function OrderQRCode({
             console.log('✅ Order matched!')
             hasAcceptedRef.current = true
             setIsListening(false)
-            notify(t(lang, 'order_received_redirect'))
+            // notify(t(lang, 'order_received_redirect'))
             onClose({ accepted: true, orderNumber: qrOrderNumber })
           }
         }

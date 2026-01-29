@@ -33,7 +33,7 @@ const Category = ({
             <img
               src={category.image_url || ''}
               alt={displayName}
-              className="object-cover"
+              className="object-cover h-full w-full"
               width={112}
               height={112}
             />

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useOrder, OrderStatus } from '@/context/OrderContext'
 import { supabase } from '@/lib/supabase'
-import { ChevronLeft, ChevronRight, Star } from 'lucide-react'
+import { ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
 import type { Lang } from '@/lib/i18n'
 import { t } from '@/lib/i18n'
 
@@ -13,14 +13,14 @@ interface TrackOrderProps {
   restaurantSlug?: string
   onBack?: () => void
   lang?: Lang
+  googleMapsUrl?: string | null
 }
 
-export default function TrackOrder({ tableNumber, restaurantSlug, onBack, lang = 'fr' }: TrackOrderProps) {
+export default function TrackOrder({ tableNumber, restaurantSlug, onBack, lang = 'fr', googleMapsUrl }: TrackOrderProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { currentOrder, updateOrderStatus } = useOrder()
   const [liveStatus, setLiveStatus] = useState<OrderStatus | null>(null)
-  const [rating, setRating] = useState(0)
   const [thankYouDismissed, setThankYouDismissed] = useState(false)
   const isRtl = lang === 'ar'
 
@@ -330,33 +330,28 @@ export default function TrackOrder({ tableNumber, restaurantSlug, onBack, lang =
                 {t(lang, 'thank_you_message')}
               </p>
 
-              {/* Rating */}
-              <div className="mb-6">
-                <p className="text-sm text-gray-600 mb-3">{t(lang, 'thank_you_rating')}</p>
-                <div className="flex justify-center gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onClick={() => setRating(star)}
-                      className={`transition-all duration-200 hover:scale-110 ${
-                        star <= rating ? 'text-yellow-400 scale-110' : 'text-gray-300'
-                      }`}
-                    >
-                      <Star
-                        className="w-10 h-10"
-                        fill={star <= rating ? 'currentColor' : 'none'}
-                        strokeWidth={1.5}
-                      />
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Buttons */}
               <div className="space-y-3">
+                {/* Google Maps Review Button - only show if URL exists */}
+                {googleMapsUrl && (
+                  <a
+                    href={googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-4 px-6 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold rounded-2xl shadow-lg shadow-blue-200/50 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+                  >
+                    <MapPin className="w-5 h-5" />
+                    {t(lang, 'thank_you_google_review')}
+                  </a>
+                )}
+                
+                {googleMapsUrl && (
+                  <p className="text-sm text-gray-400">{t(lang, 'thank_you_google_review_subtitle')}</p>
+                )}
+                
                 <button
                   onClick={() => setThankYouDismissed(true)}
-                  className="w-full py-4 px-6 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold rounded-2xl shadow-lg shadow-orange-200/50 transition-all active:scale-[0.98]"
+                  className={`w-full py-4 px-6 ${googleMapsUrl ? 'bg-gray-100 hover:bg-gray-200 text-gray-700' : 'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-lg shadow-orange-200/50'} font-semibold rounded-2xl transition-all active:scale-[0.98]`}
                 >
                   {t(lang, 'thank_you_done')}
                 </button>
